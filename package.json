@@ -1,6 +1,6 @@
 {
   "name": "dsh-omarchy-agent",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "General-purpose Omarchy (Arch Linux + Hyprland) agent capabilities for DeepSeek Harness.",
   "type": "module",
   "license": "MIT",
@@ -40,9 +40,13 @@
     }
   },
   "icon": "./icon.svg",
+  "bin": {
+    "dsh-omarchy-agent-install": "install.sh",
+    "dsh-omarchy-agent-uninstall": "uninstall.sh"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepare": "tsc -p tsconfig.json",
+    "prepack": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "setup": "bash install.sh",
     "uninstall": "bash uninstall.sh"
@@ -61,11 +65,28 @@
     "@deepseek-ai/dsh-util-values": "*",
     "@deepseek-ai/schemastery": "^3.18.4"
   },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-system-prompt": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-util-values": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@deepseek-ai/cordis": "~4.0.4",
-    "@deepseek-ai/dsh-system-prompt": "*",
-    "@deepseek-ai/dsh-tools": "*",
-    "@deepseek-ai/dsh-util-values": "*",
+    "@deepseek-ai/dsh-system-prompt": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-util-values": "0.1.7-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/node": "^24.0.0",
     "typescript": "^5.7.0"

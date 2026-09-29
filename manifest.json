@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dsh-omarchy-agent",
   "name": "DeepSeek Harness Agent",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "yorelog",
   "license": "MIT",
   "description": "Installs the dsh-omarchy-agent DeepSeek Harness agent and its Omarchy integration: the omarchy web, omarchy-headless, and tui dsh profiles, the dsh-agent launcher, the omarchy command shims, the agent-picker row, the default agent, and the Agent keybinding.",

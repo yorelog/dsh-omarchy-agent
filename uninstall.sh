@@ -7,7 +7,7 @@
 # Usage: ./uninstall.sh [options]
 set -euo pipefail
 
-REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
 PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
 HEADLESS_PROFILE="${DSH_OMARCHY_HEADLESS_PROFILE:-omarchy-headless}"
 TUI_PROFILE="${DSH_OMARCHY_TUI_PROFILE:-tui}"

@@ -21,12 +21,11 @@ same installer once, asynchronously):
 omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
 ```
 
-Or run the installer directly from a checkout:
+Or install the npm package with mise and run the bundled installer:
 
 ```sh
-git clone https://github.com/yorelog/dsh-omarchy-agent.git
-cd dsh-omarchy-agent
-./install.sh
+mise use -g npm:dsh-omarchy-agent
+dsh-omarchy-agent-install
 ```
 
 Then set your key and launch:
@@ -39,7 +38,7 @@ dsh-agent                          # opens the dsh TUI
 Press **SUPER + SHIFT + CTRL + A** or run
 `omarchy menu summon setup.default.agent` and pick **DeepSeek Harness**.
 
-Prefer to see the changes first? `./install.sh --dry-run`.
+Prefer to see the changes first? The installer accepts `--dry-run`.
 
 The Omarchy plugin path installs the plugin to
 `~/.config/omarchy/plugins/dsh-omarchy-agent/`. Its service detects that the
@@ -131,12 +130,15 @@ the next login; new interactive shells pick it up immediately.
 
 ## Manual install
 
-If you only want the bundle (e.g. for an existing profile):
+If you only want the bundle (e.g. for an existing profile), add it from npm:
 
 ```sh
-dsh plugin --profile omarchy add ./dsh-omarchy-agent
+dsh plugin --profile omarchy add dsh-omarchy-agent
 dsh --profile omarchy --dump-config | grep dsh-omarchy-agent   # verify
 ```
+
+The same command accepts a local path (`./dsh-omarchy-agent`) or a git spec
+(`github:yorelog/dsh-omarchy-agent`) instead of the npm name.
 
 Install the launcher and menu row yourself by copying
 `assets/dsh-agent` into `~/.local/bin` and running
@@ -193,14 +195,20 @@ Override the bundle row in the profile's `cordis.patch.yml`
   full session only gets it on the next login via
   `~/.config/environment.d/50-dsh-omarchy-agent.conf`.
 - **`dsh plugin` says pnpm was not found** — `mise use -g pnpm@latest`.
+- **`mise use -g npm:dsh-omarchy-agent` reports "no versions found"** — mise
+  hides npm releases newer than 24 hours (`minimum_release_age`). Pin the
+  version instead: `mise use -g npm:dsh-omarchy-agent@<version>`.
 
 ## Uninstall
 
 ```sh
-./uninstall.sh          # removes the bundle, launcher, shims, menu row, alias, keybind
+dsh-omarchy-agent-uninstall
 ```
 
-Profiles and the dsh install are left in place.
+This removes the bundle, launcher, shims, menu row, alias, and keybind.
+Profiles and the dsh install are left in place. If you installed via
+`omarchy plugin add`, run `uninstall.sh` from the plugin directory first, then
+`omarchy plugin remove dsh-omarchy-agent`.
 
 ## Development
 
@@ -213,6 +221,8 @@ mise run pack          # show the npm tarball contents
 
 The bundle is a standard Cordis plugin: `src/index.ts` exports `name`, `inject`,
 `Config`, and `apply`, and registers tools, the guard, and the prompt section.
+Run `./install.sh` from a checkout to install from source; `./uninstall.sh`
+reverses it.
 
 ## Model Experience
 
@@ -230,8 +240,11 @@ the conventions text are model-visible and are logged by the session.
   `standard` preset of the dsh release in use. dsh is a developer preview with
   breaking changes; keep the snapshot in sync with the [deepseek-harness
   `master`](https://github.com/deepseek-ai/deepseek-harness) source you run.
-  The bundle's DSH peer ranges are unversioned (`*`) so the plugin loads on
-  either a published dsh or a source build from `master`.
+  The bundle's DSH peer ranges are unversioned (`*`) and marked optional so
+  npm does not auto-install them (dsh provides them at runtime); the plugin
+  still loads on either a published dsh or a source build from `master`.
+  Build-time dev dependencies are pinned to the dsh release in use
+  (`0.1.7-rc.2`) for a reproducible `npm install`.
 - **Stock launcher** — the user-owned `omarchy` shims make `omarchy agent` and
   `omarchy default agent dsh` work. Skip them with `./install.sh --no-shim`; in
   that case use the keybinding, the Omarchy menu, or `dsh-agent`.
