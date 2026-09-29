@@ -244,7 +244,7 @@ the conventions text are model-visible and are logged by the session.
   npm does not auto-install them (dsh provides them at runtime); the plugin
   still loads on either a published dsh or a source build from `master`.
   Build-time dev dependencies are pinned to the dsh release in use
-  (`0.1.7-rc.2`) for a reproducible `npm install`.
+  (`0.2.0-rc.2`) for a reproducible `npm install`.
 - **Stock launcher** — the user-owned `omarchy` shims make `omarchy agent` and
   `omarchy default agent dsh` work. Skip them with `./install.sh --no-shim`; in
   that case use the keybinding, the Omarchy menu, or `dsh-agent`.
