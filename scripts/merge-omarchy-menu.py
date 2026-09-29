@@ -90,9 +90,15 @@ def remove(path: str) -> int:
     backup(path)
     del parsed[KEY]
     body = json.dumps(parsed, ensure_ascii=False, indent=2)[1:-1].strip()
+    if not body:
+        # Nothing left but this project's row: drop the file entirely instead
+        # of leaving a header-only file behind.
+        os.remove(path)
+        print(f"menu: removed {path}")
+        return 0
     header = "{\n  // Omarchy menu extension. Managed by dsh-omarchy-agent.\n"
     with open(path, "w", encoding="utf-8") as handle:
-        handle.write(f"{header}{body}\n}}\n" if body else f"{header}}}\n")
+        handle.write(f"{header}{body}\n}}\n")
     print(f"menu: removed DeepSeek Harness row from {path}")
     return 0
 

@@ -16,7 +16,10 @@ MENU_SCRIPT="$REPO_DIR/scripts/merge-omarchy-menu.py"
 LAUNCHER_DEST="$HOME/.local/bin/dsh-agent"
 HYPR_BINDINGS="$HOME/.config/hypr/bindings.lua"
 BASHRC="$HOME/.bashrc"
-SHIM_DIR="$HOME/.local/share/dsh-omarchy-agent/bin"
+SHARE_DIR="$HOME/.local/share/dsh-omarchy-agent"
+SHIM_DIR="$SHARE_DIR/bin"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dsh-omarchy-agent"
+MENU_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/extensions/omarchy-menu.jsonc"
 ENVD_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/50-dsh-omarchy-agent.conf"
 FISH_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/dsh-omarchy-agent.fish"
 
@@ -76,7 +79,6 @@ remove_blocks() {
     printf '[dry-run] remove marked block from %s\n' "$file"
     return 0
   fi
-  cp -p "$file" "$file.bak"
   awk -v b="$begin" -v e="$end" '
     $0 == b { skip = 1; next }
     $0 == e { skip = 0; next }
@@ -106,9 +108,13 @@ main() {
     $DRY_RUN || say "• removed launcher: $LAUNCHER_DEST"
   fi
 
-  if [[ -d $SHIM_DIR ]]; then
-    run rm -rf "$SHIM_DIR"
-    $DRY_RUN || say "• removed Omarchy agent shims: $SHIM_DIR"
+  if [[ -d $SHARE_DIR ]]; then
+    run rm -rf "$SHARE_DIR"
+    $DRY_RUN || say "• removed Omarchy agent shims: $SHARE_DIR"
+  fi
+  if [[ -d $STATE_DIR ]]; then
+    run rm -rf "$STATE_DIR"
+    $DRY_RUN || say "• removed state: $STATE_DIR"
   fi
   for file in "$ENVD_FILE" "$FISH_CONF"; do
     if [[ -e $file ]]; then
@@ -116,6 +122,19 @@ main() {
       $DRY_RUN || say "• removed $file"
     fi
   done
+
+  # Drop the shim from the running session's systemd/D-Bus PATH so no stale
+  # directory is left behind until the next login.
+  if ! $DRY_RUN && command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+    local session_path cleaned
+    session_path="$(systemctl --user show-environment | sed -n 's/^PATH=//p')"
+    cleaned="$(printf '%s' "$session_path" | tr ':' '\n' | grep -vxF "$SHIM_DIR" | paste -sd: -)"
+    systemctl --user set-environment PATH="$cleaned" >/dev/null 2>&1 || true
+    if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+      PATH="$cleaned" dbus-update-activation-environment --systemd PATH >/dev/null 2>&1 || true
+    fi
+    say "• removed the shim from the session PATH"
+  fi
 
   if command -v python3 >/dev/null 2>&1; then
     if $DRY_RUN; then
@@ -128,6 +147,14 @@ main() {
   remove_blocks "$BASHRC" "$SH_BEGIN_MARK" "$SH_END_MARK"
   remove_blocks "$BASHRC" "$PATH_BEGIN_MARK" "$PATH_END_MARK"
   $WANT_KEYBIND && remove_blocks "$HYPR_BINDINGS" "$LUA_BEGIN_MARK" "$LUA_END_MARK"
+
+  # Backups this project wrote while editing user files.
+  for backup in "$BASHRC.bak" "$HYPR_BINDINGS.bak" "$MENU_FILE.bak"; do
+    if [[ -e $backup ]]; then
+      run rm -f "$backup"
+      $DRY_RUN || say "• removed $backup"
+    fi
+  done
 
   if $WANT_DEFAULT && [[ -r $AGENT_FILE ]] && [[ "$(head -n1 "$AGENT_FILE")" == dsh ]]; then
     if confirm "Reset the Omarchy default agent away from dsh?"; then
@@ -145,7 +172,9 @@ main() {
   fi
 
   say ""
-  say "Done. Profiles and the dsh install were left in place."
+  say "Done. The dsh profiles, the dsh install, and the Omarchy shell plugin"
+  say "directory are left in place; remove the plugin with:"
+  say "    omarchy plugin remove dsh-omarchy-agent"
 }
 
 main
