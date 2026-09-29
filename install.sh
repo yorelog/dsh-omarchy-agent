@@ -113,13 +113,29 @@ install_dsh() {
     say "• dsh found: $(dsh --version 2>/dev/null | head -n1)"
     return 0
   fi
-  if command -v mise >/dev/null 2>&1; then
-    say "• installing dsh with mise"
-    run mise use -g npm:@deepseek-ai/dsh@latest
-    run mise reshim || true
-  else
+  if ! command -v mise >/dev/null 2>&1; then
     die "dsh is not on PATH and mise is not installed. Install one of them first."
   fi
+  say "• installing dsh with mise"
+  # dsh publishes prereleases only, and mise's npm backend does not always
+  # resolve `@latest` to the prerelease dist-tag. Retry with the concrete
+  # version npm reports.
+  if run mise use -g npm:@deepseek-ai/dsh@latest; then
+    run mise reshim || true
+    return 0
+  fi
+  local version=""
+  if command -v npm >/dev/null 2>&1; then
+    version="$(npm view @deepseek-ai/dsh version 2>/dev/null || true)"
+  fi
+  if [[ -n $version ]]; then
+    say "• retrying with the concrete version $version"
+    if run mise use -g "npm:@deepseek-ai/dsh@$version"; then
+      run mise reshim || true
+      return 0
+    fi
+  fi
+  die "could not install dsh with mise; install it manually and re-run"
 }
 
 install_pnpm() {
