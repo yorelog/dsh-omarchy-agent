@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "dsh-omarchy-agent",
+  "name": "DeepSeek Harness Agent",
+  "version": "0.1.0",
+  "author": "yorelog",
+  "license": "MIT",
+  "description": "Installs the dsh-omarchy-agent DeepSeek Harness agent and its Omarchy integration: the omarchy and omarchy-headless dsh profiles, the dsh-agent launcher, the agent-picker row, the default agent, and the Agent keybinding.",
+  "kinds": ["service"],
+  "entryPoints": {
+    "service": "integration/Service.qml"
+  }
+}

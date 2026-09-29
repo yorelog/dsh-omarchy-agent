@@ -1,0 +1,77 @@
+{
+  "name": "dsh-omarchy-agent",
+  "version": "0.1.0",
+  "description": "General-purpose Omarchy (Arch Linux + Hyprland) agent capabilities for DeepSeek Harness.",
+  "type": "module",
+  "license": "MIT",
+  "author": "yorelog",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "presets/*.patch.yml",
+    "locale/*.json",
+    "manifest.json",
+    "integration/**",
+    "assets/**",
+    "scripts/**",
+    "install.sh",
+    "uninstall.sh",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": [
+        "./cordis.patch.yml",
+        "./presets/omarchy-general.patch.yml"
+      ]
+    }
+  },
+  "icon": "./icon.svg",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "setup": "bash install.sh",
+    "uninstall": "bash uninstall.sh"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "omarchy",
+    "hyprland",
+    "agent"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-system-prompt": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-util-values": "0.1.7-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-system-prompt": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-util-values": "0.1.7-rc.2",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "engines": {
+    "node": "^22.19 || >=24"
+  }
+}

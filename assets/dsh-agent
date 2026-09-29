@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# dsh-agent — Omarchy agent entry for the DeepSeek Harness (`dsh`).
+#
+# Adds dsh to the Omarchy agent workflow without modifying package-owned files.
+# It mirrors `omarchy-agent` for dsh and delegates every other default agent to
+# the stock launcher. `--pick` opens the Omarchy agent picker, which lists
+# DeepSeek Harness once the menu extension is installed.
+#
+# Usage:
+#   dsh-agent [--inline] [--pick] [--prompt <text>] [--set <name>]
+#
+# Environment:
+#   DSH_OMARCHY_PROFILE            interactive profile name (default: omarchy)
+#   DSH_OMARCHY_HEADLESS_PROFILE   one-shot profile name (default: omarchy-headless)
+set -euo pipefail
+
+AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
+PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
+HEADLESS_PROFILE="${DSH_OMARCHY_HEADLESS_PROFILE:-omarchy-headless}"
+APP_ID="org.omarchy.agent"
+
+inline=false
+pick=false
+prompt=""
+set_name=""
+
+usage() {
+  sed -n '2,14p' "$0"
+}
+
+while (($#)); do
+  case "$1" in
+    --inline) inline=true; shift ;;
+    --pick) pick=true; shift ;;
+    --prompt) prompt=${2:?--prompt needs a value}; shift 2 ;;
+    --set) set_name=${2:?--set needs a value}; shift 2 ;;
+    -h | --help) usage; exit 0 ;;
+    *)
+      echo "dsh-agent: unexpected argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+set_default() {
+  mkdir -p "$(dirname "$AGENT_FILE")"
+  printf '%s\n' "$1" >"$AGENT_FILE"
+}
+
+current_agent() {
+  [[ -r $AGENT_FILE ]] && head -n1 "$AGENT_FILE" || true
+}
+
+require_dsh() {
+  if ! command -v dsh >/dev/null 2>&1; then
+    echo "dsh-agent: the 'dsh' command is not on PATH." >&2
+    echo "Install it with:  mise use -g npm:@deepseek-ai/dsh@latest" >&2
+    exit 1
+  fi
+}
+
+if [[ -n $set_name ]]; then
+  set_default "$set_name"
+  exit 0
+fi
+
+if $pick; then
+  exec omarchy-menu summon setup.default.agent
+fi
+
+run_dsh() {
+  require_dsh
+  if [[ -n $prompt ]]; then
+    if $inline; then
+      exec dsh "$HEADLESS_PROFILE" "$prompt"
+    else
+      exec omarchy-launch-tui --app-id="$APP_ID" dsh "$HEADLESS_PROFILE" "$prompt"
+    fi
+  fi
+  if $inline; then
+    exec dsh "$PROFILE"
+  else
+    exec omarchy-launch-tui --app-id="$APP_ID" dsh "$PROFILE"
+  fi
+}
+
+agent="$(current_agent)"
+case "$agent" in
+  dsh)
+    set_default dsh
+    run_dsh
+    ;;
+  '')
+    if $inline; then exec omarchy-agent --inline --pick; else exec omarchy-agent --pick; fi
+    ;;
+  *)
+    if $inline; then exec omarchy-agent --inline; else exec omarchy-agent; fi
+    ;;
+esac

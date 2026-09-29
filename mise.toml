@@ -1,0 +1,28 @@
+[tasks.install]
+description = "Install npm dependencies"
+run = "npm install"
+
+[tasks.build]
+description = "Compile TypeScript to lib/"
+run = "npm run build"
+
+[tasks.typecheck]
+description = "Type-check without emitting"
+run = "npm run typecheck"
+
+[tasks.test]
+description = "Build and run the keyless smoke test"
+depends = ["build"]
+run = "node scripts/smoke-test.mjs"
+
+[tasks.setup]
+description = "Install the bundle and Omarchy desktop integration"
+run = "./install.sh"
+
+[tasks.uninstall]
+description = "Remove the bundle and Omarchy desktop integration"
+run = "./uninstall.sh"
+
+[tasks.pack]
+description = "Show the npm tarball contents"
+run = "npm pack --dry-run"

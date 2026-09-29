@@ -1,0 +1,16 @@
+# dsh-omarchy-agent bundle patch.
+#
+# Registers the Omarchy capability plugin in the profile's global layer. Every
+# agent in a profile that installs this bundle gains the Omarchy tools, the
+# package-ownership guard, and the conventions system-prompt section.
+#
+# Rows here are patchable by id from a later layer, such as the profile's own
+# cordis.patch.yml:
+#
+#   - id: omarchy-agent
+#     config:
+#       protectedPath: /usr/share/omarchy
+#       commandTimeoutMs: 30000
+- insert:
+    - id: omarchy-agent
+      name: 'dsh-omarchy-agent'
