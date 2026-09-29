@@ -15,8 +15,12 @@ INTEGRATED="$STATE_DIR/integrated"
 ATTEMPTED="$STATE_DIR/attempted"
 PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
 PROFILE_MANIFEST="$HOME/.dsh/profiles/$PROFILE/package.json"
+SHIM_DIR="$HOME/.local/share/dsh-omarchy-agent/bin"
 
 is_integrated() {
+  # The shims are part of the integration, so an older install that predates
+  # them is treated as unfinished and run once to add them.
+  [[ -f $SHIM_DIR/omarchy ]] || return 1
   [[ -f $INTEGRATED ]] && return 0
   [[ -f $PROFILE_MANIFEST ]] && grep -q '"dsh-omarchy-agent"' "$PROFILE_MANIFEST" && return 0
   return 1

@@ -7,20 +7,24 @@
 # DeepSeek Harness once the menu extension is installed.
 #
 # Usage:
-#   dsh-agent [--inline] [--pick] [--prompt <text>] [--set <name>]
+#   dsh-agent [--inline] [--web] [--pick] [--prompt <text>] [--set <name>]
 #
 # Environment:
-#   DSH_OMARCHY_PROFILE            interactive profile name (default: omarchy)
+#   DSH_OMARCHY_TUI_PROFILE        TUI profile launched interactively (default: tui)
+#   DSH_OMARCHY_PROFILE            web profile fallback (default: omarchy)
 #   DSH_OMARCHY_HEADLESS_PROFILE   one-shot profile name (default: omarchy-headless)
 set -euo pipefail
 
 AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
 PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
 HEADLESS_PROFILE="${DSH_OMARCHY_HEADLESS_PROFILE:-omarchy-headless}"
+TUI_PROFILE="${DSH_OMARCHY_TUI_PROFILE:-tui}"
+DSH_HOME_DIR="${DSH_HOME:-$HOME/.dsh}"
 APP_ID="org.omarchy.agent"
 
 inline=false
 pick=false
+web=false
 prompt=""
 set_name=""
 
@@ -31,6 +35,7 @@ usage() {
 while (($#)); do
   case "$1" in
     --inline) inline=true; shift ;;
+    --web) web=true; shift ;;
     --pick) pick=true; shift ;;
     --prompt) prompt=${2:?--prompt needs a value}; shift 2 ;;
     --set) set_name=${2:?--set needs a value}; shift 2 ;;
@@ -69,6 +74,16 @@ if $pick; then
   exec omarchy-menu summon setup.default.agent
 fi
 
+# The TUI profile is the default agent surface; --web or a missing TUI profile
+# falls back to the web profile.
+interactive_profile() {
+  if ! $web && [[ -d "$DSH_HOME_DIR/profiles/$TUI_PROFILE" ]]; then
+    printf '%s\n' "$TUI_PROFILE"
+  else
+    printf '%s\n' "$PROFILE"
+  fi
+}
+
 run_dsh() {
   require_dsh
   if [[ -n $prompt ]]; then
@@ -78,10 +93,12 @@ run_dsh() {
       exec omarchy-launch-tui --app-id="$APP_ID" dsh "$HEADLESS_PROFILE" "$prompt"
     fi
   fi
+  local profile
+  profile="$(interactive_profile)"
   if $inline; then
-    exec dsh "$PROFILE"
+    exec dsh "$profile"
   else
-    exec omarchy-launch-tui --app-id="$APP_ID" dsh "$PROFILE"
+    exec omarchy-launch-tui --app-id="$APP_ID" dsh "$profile"
   fi
 }
 

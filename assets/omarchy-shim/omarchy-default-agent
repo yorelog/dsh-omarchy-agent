@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# dsh-omarchy-agent: register and report dsh as an Omarchy default agent.
+#
+# The packaged omarchy-default-agent accepts only its curated list, so the menu
+# row and `omarchy default agent dsh` would otherwise fail. Reads with no
+# argument are already agnostic and are left to the packaged command.
+set -euo pipefail
+
+STOCK_DEFAULT_AGENT="/usr/bin/omarchy-default-agent"
+DSH_AGENT="${DSH_OMARCHY_LAUNCHER:-$HOME/.local/bin/dsh-agent}"
+AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
+
+install=false
+args=("$@")
+if [[ ${args[0]:-} == --install ]]; then
+  install=true
+  args=("${args[@]:1}")
+fi
+
+if [[ ${args[0]:-} == dsh ]]; then
+  mkdir -p "$(dirname "$AGENT_FILE")"
+  printf 'dsh\n' >"$AGENT_FILE"
+  if $install; then
+    exec "$DSH_AGENT" --inline
+  fi
+  exec "$DSH_AGENT"
+fi
+
+exec "$STOCK_DEFAULT_AGENT" "$@"

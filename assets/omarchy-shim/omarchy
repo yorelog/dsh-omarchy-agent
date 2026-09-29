@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# dsh-omarchy-agent: teach `omarchy agent` and `omarchy default agent` about dsh.
+#
+# Omarchy hardcodes its agent list in /usr/bin/omarchy-agent and
+# /usr/bin/omarchy-default-agent, and the `omarchy` router resolves subcommands
+# from the directory the router itself lives in, not from PATH. Shadowing only
+# omarchy-agent is therefore not enough: `omarchy agent` would still reach the
+# packaged copy. This shim sits earlier on PATH, intercepts the two agent entry
+# points, and delegates every other invocation to the packaged router unchanged.
+set -euo pipefail
+
+STOCK_OMARCHY="/usr/bin/omarchy"
+DSH_AGENT="${DSH_OMARCHY_LAUNCHER:-$HOME/.local/bin/dsh-agent}"
+AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
+
+current_agent() {
+  [[ -r $AGENT_FILE ]] && head -n1 "$AGENT_FILE" || true
+}
+
+launch_dsh() {
+  if [[ -x $DSH_AGENT ]]; then
+    exec "$DSH_AGENT" "$@"
+  fi
+  echo "omarchy: $DSH_AGENT is missing; re-run the dsh-omarchy-agent installer" >&2
+  exit 1
+}
+
+# `omarchy agent` and its launcher flags. `omarchy agent prompt|crash ...` are
+# separate router subcommands, so a non-flag second word falls through to the
+# packaged router below.
+if [[ ${1:-} == agent ]]; then
+  case "${2:-}" in
+  '' | --inline | --pick | --prompt)
+    [[ "$(current_agent)" == dsh ]] && launch_dsh "${@:2}"
+    ;;
+  esac
+fi
+
+# `omarchy default agent dsh` must be accepted even though the packaged command
+# rejects unknown agent names; --install is the floating-terminal install form.
+if [[ ${1:-} == default && ${2:-} == agent && ${3:-} == dsh ]]; then
+  mkdir -p "$(dirname "$AGENT_FILE")"
+  printf 'dsh\n' >"$AGENT_FILE"
+  [[ ${4:-} == --install ]] && launch_dsh --inline
+  launch_dsh
+fi
+
+exec "$STOCK_OMARCHY" "$@"

@@ -1,9 +1,9 @@
 # Agent preset omarchy-general: a general-purpose coding agent that is
-# Omarchy-aware. This file mirrors the shipped `standard` preset of
-# @deepseek-ai/dsh-web-app 0.1.7-rc.2, renamed and given an Omarchy persona.
-# The Omarchy tools, guard, and conventions come from this bundle's global row,
-# which every agent in the profile inherits; keep this list in sync when the
-# pinned dsh version changes its standard preset.
+# Omarchy-aware. This file mirrors the shipped `standard` preset of the dsh
+# web app, renamed and given an Omarchy persona. The Omarchy tools, guard, and
+# conventions come from this bundle's global row, which every agent in the
+# profile inherits; keep this list in sync with the deepseek-harness `master`
+# source used to run dsh.
 - insert:
     - id: preset-omarchy-general
       name: '@deepseek-ai/dsh-agent-preset'

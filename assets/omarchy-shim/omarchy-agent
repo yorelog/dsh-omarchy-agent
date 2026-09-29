@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# dsh-omarchy-agent: make direct `omarchy-agent` calls honor a dsh default.
+#
+# omarchy-agent-prompt and omarchy-agent-crash both invoke `omarchy-agent`
+# through PATH rather than through the omarchy router, so this shim is what
+# lets the crash diagnosis and one-shot prompt flows reach dsh. It delegates to
+# dsh-agent, which in turn delegates every non-dsh agent back to the packaged
+# launcher (by absolute path, so this shim is never re-entered).
+set -euo pipefail
+
+STOCK_AGENT="/usr/bin/omarchy-agent"
+DSH_AGENT="${DSH_OMARCHY_LAUNCHER:-$HOME/.local/bin/dsh-agent}"
+AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
+
+agent=""
+[[ -r $AGENT_FILE ]] && agent="$(head -n1 "$AGENT_FILE")"
+
+if [[ $agent == dsh && -x $DSH_AGENT ]]; then
+  exec "$DSH_AGENT" "$@"
+fi
+
+exec "$STOCK_AGENT" "$@"

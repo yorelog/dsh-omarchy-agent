@@ -17,11 +17,16 @@ set -euo pipefail
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
 HEADLESS_PROFILE="${DSH_OMARCHY_HEADLESS_PROFILE:-omarchy-headless}"
+TUI_PROFILE="${DSH_OMARCHY_TUI_PROFILE:-tui}"
+TUI_PACKAGE="${DSH_OMARCHY_TUI_PACKAGE:-github:deepseek-harness/turtle-ui}"
 AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
 MENU_SCRIPT="$REPO_DIR/scripts/merge-omarchy-menu.py"
 LAUNCHER_DEST="$HOME/.local/bin/dsh-agent"
 HYPR_BINDINGS="$HOME/.config/hypr/bindings.lua"
 BASHRC="$HOME/.bashrc"
+SHIM_DIR="$HOME/.local/share/dsh-omarchy-agent/bin"
+ENVD_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/50-dsh-omarchy-agent.conf"
+FISH_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/dsh-omarchy-agent.fish"
 
 DRY_RUN=false
 ASSUME_YES=false
@@ -30,9 +35,13 @@ WANT_MENU=true
 WANT_ALIAS=true
 WANT_KEYBIND=true
 WANT_HEADLESS=true
+WANT_TUI=true
+WANT_SHIM=true
 
 SH_BEGIN_MARK="# dsh-omarchy-agent: begin"
 SH_END_MARK="# dsh-omarchy-agent: end"
+PATH_BEGIN_MARK="# dsh-omarchy-agent path: begin"
+PATH_END_MARK="# dsh-omarchy-agent path: end"
 LUA_BEGIN_MARK="-- dsh-omarchy-agent: begin"
 LUA_END_MARK="-- dsh-omarchy-agent: end"
 
@@ -60,10 +69,14 @@ Options:
       --no-alias         skip the `a` shell alias override
       --no-keybind       skip the Agent keybinding override
       --no-headless      skip the one-shot omarchy-headless profile
+      --no-tui           skip the TUI profile (falls back to the web profile)
+      --no-shim          skip the `omarchy agent` / default-agent shims
   -h, --help             show this help
 
 Environment:
-  DSH_OMARCHY_PROFILE            interactive profile name (default: omarchy)
+  DSH_OMARCHY_TUI_PROFILE        TUI profile launched interactively (default: tui)
+  DSH_OMARCHY_TUI_PACKAGE        TUI bundle to install (default: github:deepseek-harness/turtle-ui)
+  DSH_OMARCHY_PROFILE            web profile fallback (default: omarchy)
   DSH_OMARCHY_HEADLESS_PROFILE   one-shot profile name (default: omarchy-headless)
 EOF
 }
@@ -77,6 +90,8 @@ while (($#)); do
     --no-alias) WANT_ALIAS=false; shift ;;
     --no-keybind) WANT_KEYBIND=false; shift ;;
     --no-headless) WANT_HEADLESS=false; shift ;;
+    --no-tui) WANT_TUI=false; shift ;;
+    --no-shim) WANT_SHIM=false; shift ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
@@ -140,10 +155,104 @@ ensure_profile() {
   run dsh plugin --profile "$name" add "$REPO_DIR"
 }
 
+# The TUI profile is base-backed: dsh ships no tui template, so dsh plugin
+# initializes it, installs the TUI app bundle, then this bundle. The Omarchy
+# tools, guard, conventions, and preset are global rows, so the TUI inherits
+# them the same way the web profile does. A TUI bundle the machine cannot reach
+# (for example a private git spec) is reported and skipped rather than aborting
+# the rest of the install; dsh-agent then falls back to the web profile.
+ensure_tui_profile() {
+  $WANT_TUI || return 0
+  if [[ -d "$HOME/.dsh/profiles/$TUI_PROFILE" ]]; then
+    # An existing profile already has whatever TUI app the user chose; only
+    # make sure this bundle is in it.
+    say "• profile '$TUI_PROFILE' exists"
+  else
+    if [[ -z $TUI_PACKAGE ]]; then
+      warn "no TUI bundle configured; skipping the '$TUI_PROFILE' profile"
+      return 0
+    fi
+    say "• creating profile '$TUI_PROFILE' with TUI bundle '$TUI_PACKAGE'"
+    if ! run dsh plugin --profile "$TUI_PROFILE" add "$TUI_PACKAGE"; then
+      warn "could not install '$TUI_PACKAGE'; the TUI profile was not created"
+      warn "set DSH_OMARCHY_TUI_PACKAGE to a reachable TUI bundle and re-run"
+      return 0
+    fi
+  fi
+  say "• installing the bundle into profile '$TUI_PROFILE'"
+  run dsh plugin --profile "$TUI_PROFILE" add "$REPO_DIR"
+}
+
 install_launcher() {
   run mkdir -p "$HOME/.local/bin"
   run install -m 0755 "$REPO_DIR/assets/dsh-agent" "$LAUNCHER_DEST"
   say "• installed launcher: $LAUNCHER_DEST"
+}
+
+# Omarchy hardcodes its agent list, and the `omarchy` router resolves
+# subcommands from its own directory rather than PATH. These shims sit earlier
+# on PATH so `omarchy agent`, `omarchy default agent dsh`, and direct
+# omarchy-agent calls reach dsh, while every other invocation is delegated to
+# the packaged commands unchanged.
+install_shims() {
+  $WANT_SHIM || return 0
+  run mkdir -p "$SHIM_DIR"
+  local name
+  for name in omarchy omarchy-agent omarchy-default-agent; do
+    run install -m 0755 "$REPO_DIR/assets/omarchy-shim/$name" "$SHIM_DIR/$name"
+  done
+  say "• installed Omarchy agent shims: $SHIM_DIR"
+
+  # Session PATH (Hyprland, the shell, menus): environment.d is read at login,
+  # so the shim outranks the packaged /usr/share/omarchy/bin entry.
+  if $DRY_RUN; then
+    printf '[dry-run] write %s\n' "$ENVD_FILE"
+    printf '[dry-run] write %s\n' "$FISH_CONF"
+  else
+    mkdir -p "$(dirname "$ENVD_FILE")"
+    {
+      printf '# dsh-omarchy-agent: put the Omarchy agent shim ahead of the packaged commands.\n'
+      printf 'PATH=%s:$PATH\n' "$SHIM_DIR"
+    } >"$ENVD_FILE"
+    mkdir -p "$(dirname "$FISH_CONF")"
+    {
+      printf '# dsh-omarchy-agent: put the Omarchy agent shim ahead of the packaged commands.\n'
+      printf 'if test -d "%s"\n' "$SHIM_DIR"
+      printf '    set -gx PATH "%s" $PATH\n' "$SHIM_DIR"
+      printf 'end\n'
+    } >"$FISH_CONF"
+  fi
+
+  if [[ -f $BASHRC ]]; then
+    if has_marker "$BASHRC" "$PATH_BEGIN_MARK"; then
+      say "• bash PATH already set"
+    elif $DRY_RUN; then
+      printf '[dry-run] prepend the shim dir to PATH in %s\n' "$BASHRC"
+    else
+      cp -p "$BASHRC" "$BASHRC.bak"
+      {
+        printf '\n%s\n' "$PATH_BEGIN_MARK"
+        printf 'if [ -d "%s" ]; then PATH="%s:$PATH"; export PATH; fi\n' "$SHIM_DIR" "$SHIM_DIR"
+        printf '%s\n' "$PATH_END_MARK"
+      } >>"$BASHRC"
+      say "• added shim PATH block to $BASHRC"
+    fi
+  fi
+
+  # Best effort for the running session: push the shim into the systemd user
+  # environment and the D-Bus activation environment so new processes do not
+  # wait for the next login. Running shells still pick it up from their rc.
+  if ! $DRY_RUN && command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+    local session_path
+    session_path="$(systemctl --user show-environment | sed -n 's/^PATH=//p')"
+    case ":$session_path:" in
+    *":$SHIM_DIR:"*) ;;
+    *) systemctl --user set-environment PATH="$SHIM_DIR:${session_path:-$PATH}" >/dev/null 2>&1 || true ;;
+    esac
+  fi
+  if ! $DRY_RUN && command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    PATH="$SHIM_DIR:$PATH" dbus-update-activation-environment --systemd PATH >/dev/null 2>&1 || true
+  fi
 }
 
 install_menu() {
@@ -241,7 +350,9 @@ main() {
   if $WANT_HEADLESS; then
     ensure_profile "$HEADLESS_PROFILE" headless
   fi
+  ensure_tui_profile
   install_launcher
+  install_shims
   install_menu
   set_default_agent
   install_alias
@@ -253,7 +364,11 @@ main() {
     warn "DEEPSEEK_API_KEY is not set. Configure it before the agent can answer:"
     say "    export DEEPSEEK_API_KEY=...      # or use the dsh Models page"
   fi
-  say "Launch: $LAUNCHER_DEST   (or SUPER + SHIFT + CTRL + A, or 'omarchy menu summon setup.default.agent')"
+  say "Launch: $LAUNCHER_DEST   (or SUPER + SHIFT + CTRL + A, or 'omarchy agent') — opens the dsh TUI"
+  say "Web UI: dsh-agent --web   (or 'dsh web')"
+  say ""
+  say "If 'omarchy agent' still prints 'Unsupported default agent: dsh', that shell"
+  say "predates the shim: open a new terminal or run 'exec fish' once."
 }
 
 main

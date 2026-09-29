@@ -10,11 +10,15 @@ set -euo pipefail
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
 HEADLESS_PROFILE="${DSH_OMARCHY_HEADLESS_PROFILE:-omarchy-headless}"
+TUI_PROFILE="${DSH_OMARCHY_TUI_PROFILE:-tui}"
 AGENT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/agent"
 MENU_SCRIPT="$REPO_DIR/scripts/merge-omarchy-menu.py"
 LAUNCHER_DEST="$HOME/.local/bin/dsh-agent"
 HYPR_BINDINGS="$HOME/.config/hypr/bindings.lua"
 BASHRC="$HOME/.bashrc"
+SHIM_DIR="$HOME/.local/share/dsh-omarchy-agent/bin"
+ENVD_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/50-dsh-omarchy-agent.conf"
+FISH_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/dsh-omarchy-agent.fish"
 
 DRY_RUN=false
 ASSUME_YES=false
@@ -23,6 +27,8 @@ WANT_KEYBIND=true
 
 SH_BEGIN_MARK="# dsh-omarchy-agent: begin"
 SH_END_MARK="# dsh-omarchy-agent: end"
+PATH_BEGIN_MARK="# dsh-omarchy-agent path: begin"
+PATH_END_MARK="# dsh-omarchy-agent path: end"
 LUA_BEGIN_MARK="-- dsh-omarchy-agent: begin"
 LUA_END_MARK="-- dsh-omarchy-agent: end"
 
@@ -93,11 +99,23 @@ main() {
 
   remove_profile_bundle "$PROFILE"
   remove_profile_bundle "$HEADLESS_PROFILE"
+  remove_profile_bundle "$TUI_PROFILE"
 
   if [[ -e $LAUNCHER_DEST ]]; then
     run rm -f "$LAUNCHER_DEST"
     $DRY_RUN || say "• removed launcher: $LAUNCHER_DEST"
   fi
+
+  if [[ -d $SHIM_DIR ]]; then
+    run rm -rf "$SHIM_DIR"
+    $DRY_RUN || say "• removed Omarchy agent shims: $SHIM_DIR"
+  fi
+  for file in "$ENVD_FILE" "$FISH_CONF"; do
+    if [[ -e $file ]]; then
+      run rm -f "$file"
+      $DRY_RUN || say "• removed $file"
+    fi
+  done
 
   if command -v python3 >/dev/null 2>&1; then
     if $DRY_RUN; then
@@ -108,6 +126,7 @@ main() {
   fi
 
   remove_blocks "$BASHRC" "$SH_BEGIN_MARK" "$SH_END_MARK"
+  remove_blocks "$BASHRC" "$PATH_BEGIN_MARK" "$PATH_END_MARK"
   $WANT_KEYBIND && remove_blocks "$HYPR_BINDINGS" "$LUA_BEGIN_MARK" "$LUA_END_MARK"
 
   if $WANT_DEFAULT && [[ -r $AGENT_FILE ]] && [[ "$(head -n1 "$AGENT_FILE")" == dsh ]]; then
