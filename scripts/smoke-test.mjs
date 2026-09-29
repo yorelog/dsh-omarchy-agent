@@ -37,7 +37,19 @@ const bash = (command) => ({ name: 'bash', arguments: { command } })
 assert.equal((await decide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
 assert.equal((await decide(bash('rm -rf /usr/share/omarchy/themes'))).kind, 'deny')
 assert.equal((await decide(bash('echo x > /usr/share/omarchy/x'))).kind, 'deny')
+assert.equal((await decide(bash('echo x >> /usr/share/omarchy/x'))).kind, 'deny')
+assert.equal((await decide(bash('echo x >"/usr/share/omarchy/x"'))).kind, 'deny')
+assert.equal((await decide(bash('echo x > $OMARCHY_PATH/x'))).kind, 'deny')
 assert.equal((await decide(bash('cat /usr/share/omarchy/default/hypr/*'))).kind, 'allow')
+
+// A bare `>` is not a write: stderr redirection, descriptor duplication, and a
+// `>` inside a quoted string must all stay readable.
+assert.equal((await decide(bash('ls /usr/share/omarchy/themes 2>&1'))).kind, 'allow')
+assert.equal((await decide(bash('ls /usr/share/omarchy/themes 2>/dev/null'))).kind, 'allow')
+assert.equal((await decide(bash('grep -rn foo /usr/share/omarchy/default 2>&1 | head'))).kind, 'allow')
+assert.equal((await decide(bash('printf "a > b"; ls /usr/share/omarchy/themes'))).kind, 'allow')
+assert.equal((await decide(bash('echo x > /tmp/out; cat /usr/share/omarchy/x'))).kind, 'allow')
+
 assert.equal((await decide(bash('sudo pacman -Syu'))).kind, 'ask')
 assert.equal((await decide(bash('systemctl restart sshd'))).kind, 'ask')
 assert.equal((await decide(bash('systemctl --failed'))).kind, 'allow')

@@ -5,8 +5,15 @@ import type { Config } from './config.js'
 /** Tool names whose `path` argument is a filesystem mutation target. */
 const PATH_MUTATING_TOOLS = new Set(['write', 'edit', 'str_replace_editor', 'apply_patch', 'notebook_edit'])
 
-/** Tokens that, when they appear in a shell command, look like a write. */
-const WRITE_HINTS = /\b(rm|mv|cp|chmod|chown|truncate|tee|dd|install|touch|mkdir|ln|patch|sed|perl|python3?|ruby|node|awk)\b|>>?/
+/**
+ * Tokens that, when they appear in a shell command, look like a write.
+ *
+ * Output redirection is deliberately not part of this list: a bare `>` is not a
+ * write by itself, so it is resolved against its actual target by
+ * {@link redirectTargets} instead.
+ */
+const WRITE_HINTS =
+  /\b(rm|mv|cp|chmod|chown|truncate|tee|dd|install|touch|mkdir|ln|patch|sed|perl|python3?|ruby|node|awk)\b/
 
 const PRIVILEGED = /\b(sudo|pkexec|pacman|yay|paru|makepkg)\b/
 const OMARCHY_UPDATE = /\bomarchy\s+update\b/
@@ -26,9 +33,103 @@ function isProtected(candidate: string, protectedPath: string): boolean {
   return value === root || value.startsWith(`${root}/`) || value.includes(`${root}/`)
 }
 
-function shellReferencesProtected(command: string, protectedPath: string): boolean {
-  if (isProtected(command, protectedPath)) return true
-  return /\$\{?OMARCHY_PATH\}?/.test(command)
+/** Whether a command or a redirect target names the protected tree. */
+function namesProtectedTree(candidate: string, protectedPath: string): boolean {
+  if (isProtected(candidate, protectedPath)) return true
+  return /\$\{?OMARCHY_PATH\}?/.test(candidate)
+}
+
+/** Characters that end an unquoted shell word. */
+const WORD_BREAK = /[\s|&;()<>]/
+
+/** Read one shell word, unquoting it; `end` is the index just past the word. */
+function readWord(command: string, start: number): { value: string; end: number } {
+  let index = start
+  let value = ''
+  while (index < command.length) {
+    const char = command[index] as string
+    if (char === '\\') {
+      const escaped = command[index + 1]
+      if (escaped === undefined) break
+      value += escaped
+      index += 2
+      continue
+    }
+    if (char === "'" || char === '"') {
+      const quoted = readQuoted(command, index)
+      value += quoted.value
+      index = quoted.end
+      continue
+    }
+    if (WORD_BREAK.test(char)) break
+    value += char
+    index += 1
+  }
+  return { value, end: index }
+}
+
+/** Read a quoted span, returning its contents and the index just past the quote. */
+function readQuoted(command: string, start: number): { value: string; end: number } {
+  const quote = command[start] as string
+  let index = start + 1
+  let value = ''
+  while (index < command.length) {
+    const char = command[index] as string
+    if (quote === '"' && char === '\\') {
+      const escaped = command[index + 1]
+      if (escaped === undefined) break
+      value += escaped
+      index += 2
+      continue
+    }
+    if (char === quote) return { value, end: index + 1 }
+    value += char
+    index += 1
+  }
+  return { value, end: index }
+}
+
+/**
+ * Collect the file targets of every real output redirection in a shell command.
+ *
+ * Only redirects that name a file count. `>&2`, `2>&1`, and `>&-` duplicate a
+ * file descriptor rather than writing to one, and a `>` inside quotes or behind
+ * a backslash is string data rather than shell syntax, so all of them are
+ * skipped. Quoted targets are still resolved, so `>"$P/x"` names `$P/x`.
+ * @param command - raw shell command text.
+ * @returns the unquoted target of each file redirection, in order.
+ */
+function redirectTargets(command: string): string[] {
+  const targets: string[] = []
+  let index = 0
+  while (index < command.length) {
+    const char = command[index] as string
+    if (char === '\\') {
+      index += 2
+      continue
+    }
+    if (char === "'" || char === '"') {
+      index = readQuoted(command, index).end
+      continue
+    }
+    if (char !== '>') {
+      index += 1
+      continue
+    }
+    let next = index + 1
+    if (command[next] === '>') next += 1
+    if (command[next] === '&') {
+      next += 1
+      while (next < command.length && /[0-9-]/.test(command[next] as string)) next += 1
+      index = next
+      continue
+    }
+    while (next < command.length && /[ \t]/.test(command[next] as string)) next += 1
+    const word = readWord(command, next)
+    if (word.value.length > 0) targets.push(word.value)
+    index = word.end > next ? word.end : next
+  }
+  return targets
 }
 
 function stringArg(args: unknown, keys: readonly string[]): string {
@@ -69,8 +170,10 @@ export function applyGuard(ctx: Context, config: Config): void {
     const command = stringArg(exec.arguments, ['command', 'cmd'])
     if (command.length === 0) return next()
 
-    if (shellReferencesProtected(command, config.protectedPath)) {
-      const looksLikeWrite = WRITE_HINTS.test(command) || />{1,2}/.test(command)
+    if (namesProtectedTree(command, config.protectedPath)) {
+      const looksLikeWrite =
+        WRITE_HINTS.test(command) ||
+        redirectTargets(command).some((target) => namesProtectedTree(target, config.protectedPath))
       if (looksLikeWrite) {
         return {
           kind: 'deny',
