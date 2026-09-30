@@ -18,6 +18,7 @@ VERSION_STAMP="$STATE_DIR/version"
 PROFILE="${DSH_OMARCHY_PROFILE:-omarchy}"
 PROFILE_MANIFEST="$HOME/.dsh/profiles/$PROFILE/package.json"
 SHIM_DIR="$HOME/.local/share/dsh-omarchy-agent/bin"
+LAUNCHER_DEST="$HOME/.local/bin/dsh-agent"
 
 plugin_version() {
   local version=""
@@ -31,8 +32,13 @@ plugin_version() {
 }
 
 is_integrated() {
-  # The shims are part of the integration, so an older install that predates
-  # them is treated as unfinished and run once to add them.
+  # A complete install leaves observable artifacts. Check them rather than
+  # trusting only the profile manifest: a profile that survives after mise
+  # prunes dsh, or a launcher that was deleted, must still count as needing
+  # the installer. (The profile manifest check is a fast path for installs
+  # that predate the launcher/version-stamp markers.)
+  [[ -x $LAUNCHER_DEST ]] || return 1
+  command -v dsh >/dev/null 2>&1 || return 1
   [[ -f $SHIM_DIR/omarchy ]] || return 1
   [[ -f $INTEGRATED ]] && return 0
   [[ -f $PROFILE_MANIFEST ]] && grep -q '"dsh-omarchy-agent"' "$PROFILE_MANIFEST" && return 0
@@ -82,6 +88,10 @@ case "$mode" in
     stamp_version
     if [[ $status -eq 0 ]]; then
       touch "$INTEGRATED"
+      # Success clears the attempt marker so a later incomplete state (for
+      # example dsh pruned by mise) re-runs the installer; a failed run keeps
+      # the marker and the version stamp, which stops it from looping.
+      rm -f "$ATTEMPTED"
     fi
     exit $status
     ;;

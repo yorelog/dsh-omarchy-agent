@@ -45,8 +45,18 @@ The Omarchy plugin path installs the plugin to
 agent integration is missing and runs the bundled `install.sh --yes` in the
 background, logging to `~/.local/state/dsh-omarchy-agent/install.log` and
 sending a notification when it finishes. It never repeats on later shell
-starts. Remove it again with `omarchy plugin remove dsh-omarchy-agent` **after**
-running `./uninstall.sh` from the plugin directory.
+starts. Omarchy's `omarchy plugin remove` only deletes the plugin directory, so
+run the bundled uninstaller first, then remove the plugin:
+
+```bash
+cd ~/.config/omarchy/plugins/dsh-omarchy-agent
+./uninstall.sh            # reverses the integration and removes the dsh tool
+omarchy plugin remove dsh-omarchy-agent
+```
+
+`uninstall.sh` removes the `dsh` tool installed with mise, the `dsh-agent`
+launcher, the Omarchy command shims, the agent-picker row, the alias, the
+keybinding, and the default agent.
 
 ## What the installer does
 

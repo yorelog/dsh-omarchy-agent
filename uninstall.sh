@@ -27,6 +27,7 @@ DRY_RUN=false
 ASSUME_YES=false
 WANT_DEFAULT=true
 WANT_KEYBIND=true
+WANT_DSH=true
 
 SH_BEGIN_MARK="# dsh-omarchy-agent: begin"
 SH_END_MARK="# dsh-omarchy-agent: end"
@@ -49,6 +50,7 @@ Options:
   -n, --dry-run      print what would change without changing anything
       --no-default   leave the Omarchy default agent unchanged
       --no-keybind   leave the Agent keybinding unchanged
+      --no-dsh       leave the dsh tool installed
   -h, --help         show this help
 EOF
 }
@@ -59,6 +61,7 @@ while (($#)); do
     -n | --dry-run) DRY_RUN=true; shift ;;
     --no-default) WANT_DEFAULT=false; shift ;;
     --no-keybind) WANT_KEYBIND=false; shift ;;
+    --no-dsh) WANT_DSH=false; shift ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
@@ -93,6 +96,30 @@ remove_profile_bundle() {
   [[ -d "$HOME/.dsh/profiles/$name" ]] || return 0
   say "• removing the bundle from profile '$name'"
   run dsh plugin --profile "$name" remove dsh-omarchy-agent || warn "could not update profile '$name'"
+}
+
+remove_dsh() {
+  $WANT_DSH || return 0
+  if ! command -v mise >/dev/null 2>&1; then
+    warn "mise not found; leaving dsh in place"
+    return 0
+  fi
+  # The installer uses `mise use -g npm:@deepseek-ai/dsh`, so only act when
+  # dsh is mise-managed. `mise ls` also shows a version left behind by a
+  # previous `mise unuse`, so the installed copy is removed either way.
+  if ! mise ls 2>/dev/null | grep -qE '^npm:@deepseek-ai/dsh[[:space:]]'; then
+    say "• dsh is not managed by mise; leaving it in place"
+    return 0
+  fi
+  if $DRY_RUN; then
+    say "[dry-run] mise unuse -g npm:@deepseek-ai/dsh"
+    say "[dry-run] mise uninstall npm:@deepseek-ai/dsh"
+    return 0
+  fi
+  say "• removing dsh"
+  run mise unuse -g npm:@deepseek-ai/dsh || true
+  run mise uninstall npm:@deepseek-ai/dsh || true
+  run mise reshim || true
 }
 
 main() {
@@ -167,13 +194,15 @@ main() {
     fi
   fi
 
+  remove_dsh
+
   if ! $DRY_RUN && command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
     hyprctl reload >/dev/null 2>&1 || true
   fi
 
   say ""
-  say "Done. The dsh profiles, the dsh install, and the Omarchy shell plugin"
-  say "directory are left in place; remove the plugin with:"
+  say "Done. The dsh profiles and the Omarchy shell plugin directory are left"
+  say "in place; remove the plugin with:"
   say "    omarchy plugin remove dsh-omarchy-agent"
 }
 
