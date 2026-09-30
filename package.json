@@ -48,6 +48,7 @@
     "build": "tsc -p tsconfig.json",
     "prepack": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "version": "node scripts/bump-manifest.mjs",
     "setup": "bash install.sh",
     "uninstall": "bash uninstall.sh"
   },

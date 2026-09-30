@@ -109,31 +109,51 @@ has_marker() {
 }
 
 install_dsh() {
+  # dsh publishes prereleases only, and mise's npm backend does not always
+  # resolve `@latest` to the prerelease dist-tag, so prefer the concrete
+  # version npm reports. Resolve it first so an existing dsh can be compared
+  # and upgraded instead of silently left behind.
+  local latest=""
+  if command -v npm >/dev/null 2>&1; then
+    latest="$(npm view @deepseek-ai/dsh version 2>/dev/null || true)"
+  fi
+
+  local installed=""
   if command -v dsh >/dev/null 2>&1; then
-    say "• dsh found: $(dsh --version 2>/dev/null | head -n1)"
+    installed="$(dsh --version 2>/dev/null | head -n1 | sed -E 's/^[^0-9]*//; s/[[:space:]].*$//')"
+  fi
+
+  if [[ -n $installed && -n $latest && $installed == "$latest" ]]; then
+    say "• dsh is up to date ($installed)"
     return 0
   fi
+
+  if [[ -n $installed && -z $latest ]]; then
+    say "• dsh found: $installed (npm unavailable; keeping it)"
+    return 0
+  fi
+
   if ! command -v mise >/dev/null 2>&1; then
+    if [[ -n $installed ]]; then
+      say "• dsh found: $installed (mise unavailable; update to $latest manually)"
+      return 0
+    fi
     die "dsh is not on PATH and mise is not installed. Install one of them first."
   fi
-  say "• installing dsh with mise"
-  # dsh publishes prereleases only, and mise's npm backend does not always
-  # resolve `@latest` to the prerelease dist-tag. Retry with the concrete
-  # version npm reports.
-  if run mise use -g npm:@deepseek-ai/dsh@latest; then
+
+  if [[ -n $installed ]]; then
+    say "• updating dsh: $installed -> $latest"
+  else
+    say "• installing dsh ($latest) with mise"
+  fi
+
+  if [[ -n $latest ]] && run mise use -g "npm:@deepseek-ai/dsh@$latest"; then
     run mise reshim || true
     return 0
   fi
-  local version=""
-  if command -v npm >/dev/null 2>&1; then
-    version="$(npm view @deepseek-ai/dsh version 2>/dev/null || true)"
-  fi
-  if [[ -n $version ]]; then
-    say "• retrying with the concrete version $version"
-    if run mise use -g "npm:@deepseek-ai/dsh@$version"; then
-      run mise reshim || true
-      return 0
-    fi
+  if run mise use -g npm:@deepseek-ai/dsh@latest; then
+    run mise reshim || true
+    return 0
   fi
   die "could not install dsh with mise; install it manually and re-run"
 }
