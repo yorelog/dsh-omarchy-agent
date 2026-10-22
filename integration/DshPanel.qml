@@ -307,7 +307,7 @@ Panel {
   function deliverPrompt(text) {
     if (text === "" || promptProc.running) return
     var clean = String(text).trim()
-    var url = "http://127.0.0.1:" + port + "/?dsh-prompt=" + encodeURIComponent(clean)
+    var url = "http://127.0.0.1:" + port + "/#dsh-prompt=" + encodeURIComponent(clean)
     promptProc.command = [
       "bash", "-c",
       "printf '%s' \"$1\" | wl-copy 2>/dev/null || true; exec omarchy-launch-webapp \"$2\"",

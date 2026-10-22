@@ -54,6 +54,7 @@ export function apply(ctx: Context): void {
 }
 
 const PROMPT_PARAM = 'dsh-prompt'
+const PROMPT_HASH = '#dsh-prompt='
 
 /**
  * The bar panel opens dsh web with ?dsh-prompt=... after a card click. Put that
@@ -63,7 +64,15 @@ const PROMPT_PARAM = 'dsh-prompt'
 function installPromptBridge(): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
   const url = new URL(window.location.href)
-  const prompt = url.searchParams.get(PROMPT_PARAM)
+  let prompt = url.searchParams.get(PROMPT_PARAM)
+  if (url.hash.startsWith(PROMPT_HASH)) {
+    try {
+      prompt = decodeURIComponent(url.hash.slice(PROMPT_HASH.length))
+    } catch {
+      prompt = null
+    }
+    url.hash = ''
+  }
   if (prompt === null || prompt.trim() === '') return
   url.searchParams.delete(PROMPT_PARAM)
   const cleanUrl = url.pathname + (url.search === '' ? '' : url.search) + url.hash
