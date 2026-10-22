@@ -30,6 +30,10 @@ Panel {
   readonly property int port: Number(setting("port", 3080))
   readonly property string permissionMode: String(setting("permissionMode", "danger-full-access"))
   readonly property int refreshIntervalSec: Number(setting("refreshIntervalSec", 10))
+  readonly property string brokerScript: {
+    var url = Qt.resolvedUrl("../scripts/prompt-broker.mjs").toString()
+    return decodeURIComponent(url.replace(/^file:\/\//, ""))
+  }
 
   readonly property color foreground: bar ? bar.foreground : Commons.Color.foreground
   readonly property color dim: Qt.darker(foreground, 1.55)
@@ -1060,6 +1064,12 @@ Panel {
   Process {
     id: openProc
     command: ["omarchy-launch-or-focus-webapp", "DeepSeek", "http://127.0.0.1:" + root.port]
+  }
+
+  Process {
+    id: brokerProc
+    command: ["bash", "-lc", "exec node \"$1\"", "_", root.brokerScript]
+    running: true
   }
 
   Process {

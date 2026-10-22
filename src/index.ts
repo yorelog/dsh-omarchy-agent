@@ -9,7 +9,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Config } from './config.js'
 import { applyGuard } from './guard.js'
 import { applyPrompt } from './prompt.js'
-import { startPromptBroker } from './prompt-broker.js'
 import { applyTools } from './tools.js'
 
 export { Config }
@@ -27,8 +26,6 @@ export const inject = ['tools', 'systemPrompt']
  * @param config - configuration validated by {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
-  const broker = startPromptBroker()
-  ctx.effect(() => () => broker.close(), 'omarchy: prompt broker')
   applyTools(ctx, config)
   applyGuard(ctx, config)
   applyPrompt(ctx, config)
