@@ -1,6 +1,6 @@
 {
   "name": "dsh-omarchy-agent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Omarchy (Arch Linux + Hyprland) capabilities for DeepSeek Harness: state tools, a command catalog, theme and Hyprland control, diagnostics, and a package-ownership guard.",
   "type": "module",
   "license": "MIT",
