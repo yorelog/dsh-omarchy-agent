@@ -18,6 +18,9 @@ Panel {
   ipcTarget: "dsh-omarchy-agent"
   manageIpc: false
 
+  implicitWidth: button.implicitWidth
+  implicitHeight: button.implicitHeight
+
   readonly property string home: Quickshell.env("HOME") || ""
   readonly property string workDir: {
     var configured = String(setting("workingDirectory", ""))
