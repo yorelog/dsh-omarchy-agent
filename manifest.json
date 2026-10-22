@@ -1,15 +1,67 @@
 {
   "schemaVersion": 1,
   "id": "dsh-omarchy-agent",
-  "name": "DeepSeek Harness Agent",
+  "name": "DeepSeek Harness",
   "version": "0.2.2",
   "author": "yorelog",
   "license": "MIT",
-  "description": "Adds Omarchy capabilities to DeepSeek Harness: read-only state tools, a command catalog, theme and Hyprland control, diagnostics, and a package-ownership guard. Installs the bundle into the dsh `web` profile that Omarchy's launcher runs.",
+  "description": "Adds Omarchy capabilities to DeepSeek Harness and puts dsh web, the dsh CLI, and local Omarchy state in one bar panel.",
   "kinds": [
-    "service"
+    "service",
+    "bar-widget"
   ],
+  "activation": "on-demand",
   "entryPoints": {
-    "service": "integration/Service.qml"
+    "service": "integration/Service.qml",
+    "barWidget": "integration/DshPanel.qml"
+  },
+  "barWidget": {
+    "displayName": "DeepSeek Harness",
+    "description": "Start or stop dsh web, open the web UI or the dsh CLI, and read Omarchy state.",
+    "category": "AI",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "port": 3080,
+      "workingDirectory": "",
+      "permissionMode": "danger-full-access",
+      "refreshIntervalSec": 10
+    },
+    "schema": [
+      {
+        "key": "port",
+        "type": "integer",
+        "label": "Web UI port",
+        "min": 1024,
+        "max": 65535,
+        "defaultValue": 3080
+      },
+      {
+        "key": "workingDirectory",
+        "type": "path",
+        "label": "Working directory",
+        "defaultValue": "",
+        "description": "Defaults to ~/Work."
+      },
+      {
+        "key": "permissionMode",
+        "type": "enum",
+        "label": "Permission mode",
+        "options": [
+          "danger-full-access",
+          "workspace-write"
+        ],
+        "defaultValue": "danger-full-access"
+      },
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "min": 3,
+        "max": 300,
+        "step": 1,
+        "defaultValue": 10
+      }
+    ]
   }
 }

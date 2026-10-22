@@ -55,6 +55,7 @@ from this bundle.
 | `omarchy_diagnose` | Tool | Recent crashes from `coredumpctl` and failed system/user units. |
 | Guard | `tools/pre-execute` | Denies writes under `/usr/share/omarchy`; reads stay allowed. |
 | Conventions | System prompt | Read state before changing it, prefer Omarchy tooling, keep user changes under `~/.config`. |
+| Bar widget | Omarchy `bar-widget` | Top-right AI icon: start/stop `dsh web`, open the web UI or CLI, and read Omarchy state. Ships with the Omarchy plugin, not the npm bundle. |
 
 Installing the bundle adds these to every agent in the profile. There is no
 separate preset to select.
@@ -192,6 +193,33 @@ read the last crash and the failed user units
 The **Plugins** page shows the bundle and lets you switch the `omarchy-agent`
 row off and on. Detailed configuration stays in the profile patch
 (`~/.dsh/profiles/web/cordis.patch.yml`); a web form for it is not shipped yet.
+
+## Bar widget
+
+`omarchy plugin add` also installs a bar widget, so the same controls sit in
+the top-right of the Omarchy bar:
+
+- **Left click** opens the panel: start/stop `dsh web`, open the web UI, open a
+  terminal with the dsh CLI, and read the local Omarchy state.
+- **Right click** opens or focuses the web UI directly.
+- **Middle click** opens a terminal with the dsh CLI.
+
+`Start dsh web` runs a transient systemd user unit (`dsh-web`) rather than a
+Quickshell process, so a shell restart does not kill the server:
+
+```sh
+systemctl --user status dsh-web
+systemctl --user stop dsh-web
+```
+
+The cards show the web UI state and port, the current theme, display and
+workspace counts, failed user units, and the DeepSeek record once
+`omarchy-agent-usage-deepseek` writes one. `port`, `workingDirectory`,
+`permissionMode`, and `refreshIntervalSec` are widget settings in
+`shell.json`. The server reads credentials from dsh's managed store
+(`~/.dsh/.credentials.yaml`) or, if you keep a key in the environment, from
+`~/.config/dsh/web.env`, which the start command sources. The npm bundle does
+not install this widget; it is part of the Omarchy plugin.
 
 ## Using the tools
 

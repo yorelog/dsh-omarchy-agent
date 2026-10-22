@@ -51,6 +51,7 @@ Omarchy 包目录的硬性保护规则、一段简短的约定提示词。没有
 | `omarchy_diagnose` | 工具 | 最近的崩溃（`coredumpctl`）和失败的系统/用户单元。 |
 | 守卫 | `tools/pre-execute` | 拒绝写入 `/usr/share/omarchy`；读取仍然允许。 |
 | 约定 | 系统提示词 | 先读状态再改、优先使用 Omarchy 工具、用户改动留在 `~/.config`。 |
+| 顶栏 widget | Omarchy `bar-widget` | 右上角 AI 图标：启动/停止 `dsh web`、打开 Web UI 或 CLI、查看 Omarchy 状态。随 Omarchy 插件提供，不在 npm bundle 里。 |
 
 安装 bundle 后，profile 里的每个 agent 都会获得这些能力，不需要再选择额外的
 preset。
@@ -182,6 +183,31 @@ agent 调用工具，结果会渲染成一张紧凑的 Omarchy 卡片，原始 J
 **Plugins** 页会显示这个 bundle，并允许开关 `omarchy-agent` 这一行。详细配置仍在
 profile 的 `cordis.patch.yml` 里（`~/.dsh/profiles/web/cordis.patch.yml`）；
 目前还没有 Web 配置表单。
+
+## 顶栏图标
+
+`omarchy plugin add` 还会安装一个顶栏 widget，把同样的控制放到右上角：
+
+- **左键**：打开面板——启动/停止 `dsh web`、打开 Web UI、打开带 dsh CLI 的
+  终端，查看本机 Omarchy 状态
+- **右键**：直接打开/聚焦 Web UI
+- **中键**：打开带 dsh CLI 的终端
+
+`Start dsh web` 通过 transient systemd user unit（`dsh-web`）运行，而不是
+Quickshell 进程，所以重启 shell 不会杀掉 server：
+
+```sh
+systemctl --user status dsh-web
+systemctl --user stop dsh-web
+```
+
+面板卡片显示：Web UI 状态/端口、当前主题、显示器/工作区数量、失败的用户单元，
+以及 `omarchy-agent-usage-deepseek` 写出记录后的 DeepSeek 余额/用量。`port`、
+`workingDirectory`、`permissionMode`、`refreshIntervalSec` 是 `shell.json` 里的
+widget 设置。server 的凭据来自 dsh 自己的
+`~/.dsh/.credentials.yaml`；如果习惯用环境变量，也可以放在
+`~/.config/dsh/web.env`，启动命令会 source 它。npm bundle 不安装这个 widget；
+它只随 Omarchy 插件提供。
 
 ## 使用这些工具
 
