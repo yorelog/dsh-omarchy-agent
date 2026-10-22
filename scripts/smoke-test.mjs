@@ -38,6 +38,13 @@ assert.deepEqual(
 assert.equal(section?.name, 'dsh-omarchy-agent:conventions', 'expected the conventions section')
 assert.equal(typeof guard, 'function', 'expected the pre-execute guard')
 
+// The prompt must say how to read the package tree, not just that reading is
+// allowed: shell readers that the guard flags are the trap it needs to name.
+const promptText = section?.text?.() ?? ''
+assert.match(promptText, /read tool/, 'prompt should route package-tree reads through the read tool')
+assert.match(promptText, /shell\/README\.md/, 'prompt should point at the shell plugin docs')
+assert.match(promptText, /omarchy plugin clone/, 'prompt should explain how to customize a built-in widget')
+
 // The package-owned tree is never a write target, in every mode.
 assert.equal((await decide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
 assert.equal((await decide({ name: 'edit', arguments: { file_path: '/usr//share/omarchy/x' } })).kind, 'deny')
@@ -47,6 +54,15 @@ assert.equal((await decide(bash('echo x >> /usr/share/omarchy/x'))).kind, 'deny'
 assert.equal((await decide(bash('echo x >"/usr/share/omarchy/x"'))).kind, 'deny')
 assert.equal((await decide(bash('echo x > $OMARCHY_PATH/x'))).kind, 'deny')
 assert.equal((await decide(bash('cat /usr/share/omarchy/default/hypr/*'))).kind, 'allow')
+assert.equal((await decide(bash('head -n 40 /usr/share/omarchy/shell/Ui/BarIconButton.qml'))).kind, 'allow')
+assert.equal((await decide(bash('rg iconComponent /usr/share/omarchy/shell'))).kind, 'allow')
+
+// `sed` is in the write-hint list, so a read-only `sed -n` is denied. The
+// denial must own that and route to a reader the guard allows.
+const sedRead = await decide(bash('sed -n 1,130p /usr/share/omarchy/shell/Ui/BarIconButton.qml'))
+assert.equal(sedRead.kind, 'deny')
+assert.match(sedRead.reason, /contains sed/)
+assert.match(sedRead.reason, /read tool/)
 
 // A bare `>` is not a write: stderr redirection, descriptor duplication, and a
 // `>` inside a quoted string must all stay readable.

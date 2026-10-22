@@ -115,7 +115,7 @@ bar 为什么崩了？
 
 ## 安全
 
-- 守卫阻止写入 `/usr/share/omarchy`；读取没问题。
+- 守卫阻止写入 `/usr/share/omarchy`。读取请用 `read` 工具、`cat`、`head` 或 `rg`；包含 `sed`、`awk`、`python`、`node`、`perl` 的 shell 命令即使只读也会被当作写入。
 - 它不是沙箱：工具以你的用户权限运行。
 - `dsh web` 只监听 `127.0.0.1`。不要把它暴露到公网。
 
@@ -124,6 +124,8 @@ bar 为什么崩了？
 - **找不到 `dsh`** — `mise use -g npm:@deepseek-ai/dsh@latest`，然后开新 shell。
 - **没有工具** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`，
   然后重启 `dsh web`。
+- **读取 `/usr/share/omarchy` 被拒绝** — 守卫把 `sed`、`awk`、`python`、`node`、
+  `perl` 当作写入（即使只读）；改用 `read` 工具、`cat`、`head` 或 `rg`。
 - **顶栏没有图标** — 安装上面的 Omarchy 插件，然后
   `omarchy plugin enable dsh-omarchy-agent right`。
 - **3080 端口被占用** — 已经有 `dsh web` 在运行，打开它的 URL。

@@ -121,7 +121,7 @@ access.
 
 ## Safety
 
-- The guard blocks writes to `/usr/share/omarchy`; reads are fine.
+- The guard blocks writes to `/usr/share/omarchy`. Read it with the `read` tool, `cat`, `head`, or `rg`; shell commands that also invoke `sed`, `awk`, `python`, `node`, or `perl` are treated as writes even when they only read.
 - It is not a sandbox: tools run with your user permissions.
 - `dsh web` listens on `127.0.0.1` only. Do not expose it to the internet.
 
@@ -131,6 +131,9 @@ access.
   new shell.
 - **Tools missing** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`,
   then restart `dsh web`.
+- **Read denied under `/usr/share/omarchy`** — the guard flags `sed`, `awk`,
+  `python`, `node`, and `perl` as writes even for reads; use the `read` tool,
+  `cat`, `head`, or `rg` instead.
 - **Bar icon missing** — install the Omarchy plugin (see above), then run
   `omarchy plugin enable dsh-omarchy-agent right`.
 - **Port 3080 in use** — a `dsh web` is already running; open its URL instead.
