@@ -1,5 +1,5 @@
 /**
- * Browser half of dsh-omarchy-agent: compact cards for the five Omarchy tools.
+ * Browser half of dsh-omarchy-agent: compact cards for the Omarchy tools.
  *
  * Registered into the dsh web client's keyed `tool.call.toolview` slot. The
  * host half registers the tools and owns their execution; this file only
@@ -50,6 +50,57 @@ export function apply(ctx: Context): void {
       ctx.slots.register({ name: 'tool.call.toolview', key: tool }, OmarchyToolRow),
     )
   }
+  installPromptBridge()
+}
+
+const PROMPT_PARAM = 'dsh-prompt'
+
+/**
+ * The bar panel opens dsh web with ?dsh-prompt=... after a card click. Put that
+ * text into the composer, then drop the parameter so an edit or reload never
+ * re-inserts it. This only fills the input; it never sends.
+ */
+function installPromptBridge(): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
+  const url = new URL(window.location.href)
+  const prompt = url.searchParams.get(PROMPT_PARAM)
+  if (prompt === null || prompt.trim() === '') return
+  url.searchParams.delete(PROMPT_PARAM)
+  const cleanUrl = url.pathname + (url.search === '' ? '' : url.search) + url.hash
+  let attempts = 0
+  const timer = window.setInterval(() => {
+    attempts += 1
+    if (insertComposerText(prompt)) {
+      window.clearInterval(timer)
+      window.history.replaceState(null, '', cleanUrl)
+    } else if (attempts >= 40) {
+      window.clearInterval(timer)
+    }
+  }, 250)
+}
+
+/**
+ * Insert plain text at the end of the visible composer. The dsh composer is a
+ * Lexical contenteditable; execCommand is the narrowest supported way to make
+ * the edit participate in its input state.
+ */
+function insertComposerText(text: string): boolean {
+  const editors = Array.from(document.querySelectorAll<HTMLElement>('[data-lexical-editor="true"]')).filter(
+    (editor) => editor.isContentEditable && editor.getClientRects().length > 0,
+  )
+  if (editors.length === 0) return false
+  const editor = editors.reduce((best, candidate) =>
+    candidate.getBoundingClientRect().bottom > best.getBoundingClientRect().bottom ? candidate : best,
+  )
+  editor.focus()
+  const selection = window.getSelection()
+  if (selection === null) return false
+  const range = document.createRange()
+  range.selectNodeContents(editor)
+  range.collapse(false)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  return document.execCommand('insertText', false, text)
 }
 
 type Json = Record<string, unknown>
