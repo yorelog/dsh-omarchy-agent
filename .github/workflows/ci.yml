@@ -41,5 +41,8 @@ jobs:
       - name: Smoke test
         run: node scripts/smoke-test.mjs
 
+      - name: Source search test
+        run: node scripts/source-test.mjs
+
       - name: Client smoke test
         run: node scripts/smoke-client.mjs

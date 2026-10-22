@@ -32,18 +32,20 @@ const bash = (command) => ({ name: 'bash', arguments: { command } })
 
 assert.deepEqual(
   [...tools.keys()],
-  ['omarchy_status', 'omarchy_catalog', 'omarchy_theme', 'omarchy_hypr', 'omarchy_diagnose'],
-  'expected the five Omarchy tools',
+  ['omarchy_status', 'omarchy_catalog', 'omarchy_theme', 'omarchy_hypr', 'omarchy_diagnose', 'omarchy_source'],
+  'expected the six Omarchy tools',
 )
 assert.equal(section?.name, 'dsh-omarchy-agent:conventions', 'expected the conventions section')
 assert.equal(typeof guard, 'function', 'expected the pre-execute guard')
 
-// The prompt must say how to read the package tree, not just that reading is
-// allowed: shell readers that the guard flags are the trap it needs to name.
+// The prompt must teach the read-only boundary and the source tool, not just
+// repeat that the package tree may be read.
 const promptText = section?.text?.() ?? ''
-assert.match(promptText, /read tool/, 'prompt should route package-tree reads through the read tool')
-assert.match(promptText, /shell\/README\.md/, 'prompt should point at the shell plugin docs')
-assert.match(promptText, /omarchy plugin clone/, 'prompt should explain how to customize a built-in widget')
+assert.match(promptText, /default agents, not its administrator/, 'prompt should state the default-agent boundary')
+assert.match(promptText, /omarchy_source/, 'prompt should route Omarchy source reads through omarchy_source')
+assert.match(promptText, /read tool/, 'prompt should keep the read tool as the escape hatch')
+assert.match(promptText, /omarchy-restart-shell/, 'prompt should include the shell restart step')
+assert.match(promptText, /omarchy capture screenshot/, 'prompt should include visual verification')
 
 // The package-owned tree is never a write target, in every mode.
 assert.equal((await decide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
@@ -92,4 +94,4 @@ assert.equal((await gatedDecide(bash('systemctl --failed'))).kind, 'allow')
 assert.equal((await gatedDecide(bash('ls -la'))).kind, 'allow')
 assert.equal((await gatedDecide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
 
-console.log('smoke test passed: 5 tools, 1 section, guard decisions correct')
+console.log('smoke test passed: 6 tools, 1 section, guard decisions correct')

@@ -69,6 +69,7 @@
     "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:client": "node scripts/smoke-client.mjs",
+    "test:source": "node scripts/source-test.mjs",
     "version": "node scripts/bump-manifest.mjs",
     "setup": "bash install.sh",
     "uninstall": "bash uninstall.sh"

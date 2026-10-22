@@ -6,7 +6,7 @@
 
 **让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 真正会用你的 Omarchy 桌面。**
 
-coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 5 个操作实时桌面的工具、
+coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 操作实时桌面和源码的工具、
 一条保护 Omarchy 自身文件的守卫，以及一个在顶栏运行它的面板。
 
 它是 `dsh` 插件，不是安装器。安装、启动、选择 `dsh` 正由 Omarchy 接管
@@ -22,6 +22,8 @@ coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 5 个�
   不是猜的。
 - **它找得到真正的命令。** 不编 Omarchy 路由，而是搜索
   `omarchy commands --json`，用真实存在的命令。
+- **它找得到源码。** `omarchy_source` 在 Omarchy 文档、skill、shell 源码里
+  带行号检索——不会撞上 shell 读取的 guard。
 - **它弄不坏 Omarchy。** `/usr/share/omarchy` 对 agent 只读；你的改动留在
   `~/.config`。
 - **一个图标控制全部。** 在顶栏启动/停止 `dsh web`、打开 Web UI 或 CLI，查看

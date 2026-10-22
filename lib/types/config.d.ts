@@ -3,7 +3,7 @@ import Schema from '@deepseek-ai/schemastery';
 export interface Config {
     /** The Omarchy command binary to invoke. */
     omarchyBin: string;
-    /** Package-owned path the agent must never modify; reads stay allowed. */
+    /** Package-owned Omarchy tree; reads stay allowed and omarchy_source searches it. */
     protectedPath: string;
     /**
      * Command tokens that require explicit user approval before dispatch.

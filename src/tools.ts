@@ -4,6 +4,7 @@ import { defineTool, type ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { Config } from './config.js'
 import { lines, parseJson, run, type RunOptions } from './exec.js'
+import { registerSource } from './source.js'
 
 const OS_RELEASE = '/etc/os-release'
 
@@ -31,6 +32,7 @@ export function applyTools(ctx: Context, config: Config): void {
   registerTheme(ctx, config)
   registerHypr(ctx, config)
   registerDiagnose(ctx, config)
+  registerSource(ctx, config)
 }
 
 function registerStatus(ctx: Context, config: Config): void {

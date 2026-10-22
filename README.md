@@ -7,8 +7,8 @@ English | [中文](https://github.com/yorelog/dsh-omarchy-agent/blob/main/README
 **Teach [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) to use your Omarchy desktop.**
 
 Coding agents are good at code and blind to the desktop around it. This plugin
-gives `dsh` five tools for the live desktop, a guard that keeps Omarchy's own
-files safe, and a top-bar panel for running it.
+gives `dsh` tools for the live desktop and its source, a guard that keeps
+Omarchy's own files safe, and a top-bar panel for running it.
 
 It is a `dsh` plugin, not an installer. Omarchy is taking over installing,
 launching, and selecting `dsh` ([#14455][pr14455], [#14040][pr14040]); this
@@ -23,6 +23,8 @@ plugin adds the Omarchy knowledge the agent needs.
   failed units — live, not guessed.
 - **It finds the real command.** Instead of inventing an Omarchy route, it
   searches `omarchy commands --json` and uses the one that exists.
+- **It finds the source.** `omarchy_source` searches Omarchy docs, skills, and
+  shell source with line numbers — no shell-reader guard collisions.
 - **It cannot break Omarchy.** `/usr/share/omarchy` is read-only to the agent;
   your changes stay in `~/.config`.
 - **One icon controls the rest.** Start or stop `dsh web`, open the web UI or
