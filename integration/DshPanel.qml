@@ -46,6 +46,9 @@ Panel {
   property int workspaceCount: 0
   property int failedUnits: 0
   property string defaultAgent: ""
+  property string dshVersion: ""
+  property int sessionCount: 0
+  property var deepseek: null
 
   property string lastError: ""
   property bool pendingOpen: false
@@ -67,6 +70,9 @@ Panel {
     probe(workspacesProc)
     probe(unitsProc)
     probe(agentProc)
+    probe(usageProc)
+    probe(cliProc)
+    probe(sessionsProc)
   }
 
   function probe(process) {
@@ -130,6 +136,51 @@ Panel {
     return externalServer ? "outside the panel · :" + port : "127.0.0.1:" + port
   }
 
+  function shortWorkDir() {
+    var path = workDir
+    return path.indexOf(home + "/") === 0 ? "~" + path.slice(home.length) : path
+  }
+
+  function permissionLabel() {
+    return permissionMode === "danger-full-access" ? "Full access" : "Workspace"
+  }
+
+  function cliLabel() {
+    return dshVersion !== "" ? "v" + dshVersion : "not found"
+  }
+
+  function formatTokens(count) {
+    if (typeof count !== "number" || !isFinite(count) || count <= 0) return "—"
+    if (count >= 1000000) return (count / 1000000).toFixed(1) + "M"
+    if (count >= 1000) return (count / 1000).toFixed(1) + "k"
+    return String(Math.round(count))
+  }
+
+  function balanceLabel() {
+    var record = deepseek
+    if (!record || !record.balance || typeof record.balance.remaining !== "number") return "—"
+    var value = Number(record.balance.remaining).toFixed(2)
+    var currency = record.balance.currency ? " " + String(record.balance.currency) : ""
+    return (record.balance.estimated === true ? "~" : "") + value + currency
+  }
+
+  function todayLabel() {
+    var record = deepseek
+    if (!record) return "—"
+    var prompts = typeof record.todayPrompts === "number" ? record.todayPrompts : 0
+    return prompts + " prompts · " + formatTokens(record.todayTotalTokens)
+  }
+
+  function planLabel() {
+    return deepseek && deepseek.tierLabel ? String(deepseek.tierLabel) : "—"
+  }
+
+  function usageStatus() {
+    var record = deepseek
+    if (!record) return "No usage record"
+    return record.usageStatusText ? String(record.usageStatusText) : "Ready"
+  }
+
   // Read-only from the shell's point of view apart from the two dsh-web
   // lifecycle calls this panel owns; Omarchy's plugin and agent choices stay
   // outside this target.
@@ -183,7 +234,7 @@ Panel {
     centerOnBar: false
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(380))
-    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(620))
+    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(760))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -252,7 +303,7 @@ Panel {
         }
 
         PanelSectionHeader {
-          text: "OMARCHY"
+          text: "HARNESS"
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
@@ -269,8 +320,8 @@ Panel {
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "THEME"
-            value: root.themeName !== "" ? root.themeName : "—"
+            label: "DSH CLI"
+            value: root.cliLabel()
           }
         }
 
@@ -278,16 +329,103 @@ Panel {
           width: parent.width
           spacing: Style.space(8)
 
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "DEFAULT AGENT"
+            value: root.defaultAgent !== "" ? root.defaultAgent : "—"
+          }
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "PERMISSION"
+            value: root.permissionLabel()
+          }
+        }
+
+        Row {
+          width: parent.width
+          spacing: Style.space(8)
+
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "WORKDIR"
+            value: root.shortWorkDir()
+          }
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "SESSIONS"
+            value: String(root.sessionCount)
+          }
+        }
+
+        PanelSectionHeader {
+          text: "DEEPSEEK"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        Row {
+          width: parent.width
+          spacing: Style.space(8)
+
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "BALANCE"
+            value: root.balanceLabel()
+          }
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "TODAY"
+            value: root.todayLabel()
+          }
+        }
+
+        Row {
+          width: parent.width
+          spacing: Style.space(8)
+
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "PLAN"
+            value: root.planLabel()
+          }
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "USAGE STATUS"
+            value: root.usageStatus()
+          }
+        }
+
+        Text {
+          visible: root.deepseek === null
+          width: parent.width
+          text: "DeepSeek usage fills in once Omarchy's agents collector writes a record."
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          textFormat: Text.PlainText
+          wrapMode: Text.WordWrap
+        }
+
+        PanelSectionHeader {
+          text: "OMARCHY"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        Row {
+          width: parent.width
+          spacing: Style.space(8)
+
+          StatCard {
+            width: (parent.width - parent.spacing) / 2
+            label: "THEME"
+            value: root.themeName !== "" ? root.themeName : "—"
+          }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "DISPLAYS"
             value: root.monitorCount > 0 ? String(root.monitorCount) : "—"
           }
-          StatCard {
-            width: (parent.width - parent.spacing) / 2
-            label: "WORKSPACES"
-            value: root.workspaceCount > 0 ? String(root.workspaceCount) : "—"
-          }
         }
 
         Row {
@@ -296,13 +434,13 @@ Panel {
 
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "FAILED UNITS"
-            value: String(root.failedUnits)
+            label: "WORKSPACES"
+            value: root.workspaceCount > 0 ? String(root.workspaceCount) : "—"
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "DEFAULT AGENT"
-            value: root.defaultAgent !== "" ? root.defaultAgent : "—"
+            label: "FAILED UNITS"
+            value: String(root.failedUnits)
           }
         }
 
@@ -496,6 +634,56 @@ Panel {
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.defaultAgent = String(text).trim()
+    }
+  }
+
+  Process {
+    id: usageProc
+    command: ["bash", "-c", "cat \"$HOME/.local/state/omarchy/agents/usage/deepseek.json\" 2>/dev/null || true"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var raw = String(text).trim()
+        if (raw === "") {
+          root.deepseek = null
+          return
+        }
+        try {
+          root.deepseek = JSON.parse(raw)
+        } catch (error) {
+          root.deepseek = null
+        }
+      }
+    }
+  }
+
+  Process {
+    id: cliProc
+    command: ["dsh", "--version"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var first = String(text).trim().split("\n")[0] || ""
+        root.dshVersion = first
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0) root.dshVersion = ""
+    }
+  }
+
+  Process {
+    id: sessionsProc
+    command: [
+      "bash", "-c",
+      "find \"${DSH_HOME:-$HOME/.dsh}/sessions\" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l"
+    ]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var count = parseInt(String(text).trim(), 10)
+        root.sessionCount = isNaN(count) ? 0 : count
+      }
     }
   }
 
