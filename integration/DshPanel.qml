@@ -170,7 +170,9 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened
-    centerOnBar: true
+    // Anchor under the bar icon; centering on the whole bar would detach the
+    // panel from the widget that opened it.
+    centerOnBar: false
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(380))
     contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(620))
