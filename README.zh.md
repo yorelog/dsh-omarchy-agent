@@ -24,6 +24,8 @@ Omarchy 包目录的硬性保护规则、一段简短的约定提示词。没有
   命令，卸载一条。
 - **顺应 Omarchy 的原生 dsh 支持，而不是对抗它。** bundle 装进 `dsh web`
   启动的 `web` profile，启动器、选择器、用量面板仍由 Omarchy 负责。
+- **在 dsh web 里也有展示。** 同样的工具在 web 会话中渲染成紧凑的 Omarchy 卡片，
+  原始 JSON 收在折叠项里，不再是通用 JSON 卡片。
 - **小而可审计。** 5 个工具、1 个 hook、1 段提示词；没有需要跟随 dsh 版本
   同步的 preset 快照；`lib/` 已提交，CI 校验它与 `src/` 一致。
 
@@ -164,6 +166,23 @@ bundle。
 Hyprland 绑定、Omarchy 菜单或默认 agent 文件。旧版本曾这样做；`uninstall.sh`
 会清理这些残留。
 
+## 在 dsh web 中使用
+
+bundle 装进 `web` profile，因此同样的工具在 dsh web 会话里也可用。直接提出需求，
+agent 调用工具，结果会渲染成一张紧凑的 Omarchy 卡片，原始 JSON 收在“Raw JSON”
+折叠项里：
+
+```text
+我现在是什么主题？接了哪些显示器？
+列出 Omarchy 换壁纸的命令
+切到 Tokyo Night 并重载 Hyprland
+看看最近的崩溃和失败的单元
+```
+
+**Plugins** 页会显示这个 bundle，并允许开关 `omarchy-agent` 这一行。详细配置仍在
+profile 的 `cordis.patch.yml` 里（`~/.dsh/profiles/web/cordis.patch.yml`）；
+目前还没有 Web 配置表单。
+
 ## 使用这些工具
 
 在 dsh 会话里直接提出需求，工具即可用：
@@ -222,14 +241,15 @@ omarchy plugin remove dsh-omarchy-agent
 
 ```sh
 mise run install       # npm install
-mise run build         # tsc -> lib/
-mise run test          # build + 无密钥 smoke test（工具、提示词、守卫）
+mise run build         # tsc -> lib/，并构建浏览器端 lib/client.js
+mise run test          # build + 无密钥 smoke test（host 和 client）
 mise run pack          # 查看 npm tarball 内容
 ```
 
 这是一个标准 Cordis 插件：`src/index.ts` 导出 `name`、`inject`、`Config` 和
-`apply`，并注册工具、守卫和提示词 section。`lib/` 已提交；CI 会校验它与
-`src/` 一致。
+`apply`，并注册工具、守卫和提示词 section。`src/client/index.tsx` 是浏览器端：
+通过 dsh web client 的 slot 系统，为每个工具注册一个 `tool.call.toolview` 视图。
+`lib/` 已提交；CI 会校验它与 `src/` 一致。
 
 ## 模型体验
 

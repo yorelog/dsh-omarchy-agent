@@ -11,9 +11,9 @@ description = "Type-check without emitting"
 run = "npm run typecheck"
 
 [tasks.test]
-description = "Build and run the keyless smoke test"
+description = "Build and run the keyless smoke tests"
 depends = ["build"]
-run = "node scripts/smoke-test.mjs"
+run = "node scripts/smoke-test.mjs && node scripts/smoke-client.mjs"
 
 [tasks.setup]
 description = "Install the bundle and Omarchy desktop integration"

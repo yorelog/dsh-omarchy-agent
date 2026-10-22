@@ -26,6 +26,8 @@ prompt. No shims, no `PATH` edits, no shell or Hyprland rewrites.
 - **Built for Omarchy's native dsh support, not against it.** The bundle lands
   in the `web` profile that `dsh web` boots, so Omarchy keeps owning the
   launcher, the picker, and the usage panel.
+- **Renders in dsh web.** The same tools show as compact Omarchy cards in a web
+  session, with the raw JSON behind a disclosure; the generic JSON card is gone.
 - **Small and auditable.** Five tools, one hook, one prompt section. There is no
   preset snapshot to resync on every dsh release; `lib/` is committed and CI
   checks it against `src/`.
@@ -174,6 +176,23 @@ Nothing here edits `/usr/share/omarchy`, `~/.bashrc`, fish config,
 `environment.d`, Hyprland bindings, the Omarchy menu, or the default-agent file.
 Older versions of this project did; `uninstall.sh` removes those leftovers.
 
+## Using Omarchy from dsh web
+
+The bundle installs into the `web` profile, so the same tools are available in a
+dsh web session. Ask for what you want; the agent calls the tool and the call
+renders as a compact Omarchy card, with the raw JSON behind a disclosure:
+
+```text
+what theme am I on, and which monitors are connected?
+list Omarchy commands for changing the wallpaper
+switch to Tokyo Night and reload Hyprland
+read the last crash and the failed user units
+```
+
+The **Plugins** page shows the bundle and lets you switch the `omarchy-agent`
+row off and on. Detailed configuration stays in the profile patch
+(`~/.dsh/profiles/web/cordis.patch.yml`); a web form for it is not shipped yet.
+
 ## Using the tools
 
 In a dsh session, ask for what you want and the tools are available:
@@ -236,14 +255,16 @@ omarchy plugin remove dsh-omarchy-agent
 
 ```sh
 mise run install       # npm install
-mise run build         # tsc -> lib/
-mise run test          # build + keyless smoke test (tools, section, guard)
+mise run build         # tsc -> lib/ and the browser client -> lib/client.js
+mise run test          # build + keyless smoke tests (host and client)
 mise run pack          # show the npm tarball contents
 ```
 
 The bundle is a standard Cordis plugin: `src/index.ts` exports `name`, `inject`,
 `Config`, and `apply`, and registers tools, the guard, and the prompt section.
-`lib/` is committed; CI checks that it matches `src/`.
+`src/client/index.tsx` is the browser half: it registers one `tool.call.toolview`
+view per tool through the dsh web client's slot system. `lib/` is committed; CI
+checks that it matches `src/`.
 
 ## Model Experience
 

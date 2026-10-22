@@ -40,3 +40,6 @@ jobs:
 
       - name: Smoke test
         run: node scripts/smoke-test.mjs
+
+      - name: Client smoke test
+        run: node scripts/smoke-client.mjs
