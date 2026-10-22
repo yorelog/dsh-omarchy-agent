@@ -4,265 +4,127 @@
 
 English | [中文](README.zh.md)
 
-**Omarchy capabilities for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).**
+Let [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`)
+work on your Omarchy desktop.
 
-A `dsh` plugin, not an Omarchy desktop installer: five tools over the live
-desktop, a hard guard on Omarchy's package-owned tree, and a short conventions
-prompt. No shims, no `PATH` edits, no shell or Hyprland rewrites.
+This plugin gives the agent five tools for the live desktop, stops it from
+changing files Omarchy owns, and adds a top-bar panel for starting `dsh web`,
+opening the web UI or CLI, and reading desktop state.
 
-## Highlights
-
-- **The agent looks things up instead of guessing.** `omarchy_catalog` searches
-  `omarchy commands --json`, so it discovers real routes, arguments, and sudo
-  requirements. `omarchy_status` and `omarchy_hypr` return live JSON from
-  `omarchy` and `hyprctl`.
-- **One safety rule that survives full access.** Omarchy launches agents with
-  `DSH_PERMISSION_MODE=danger-full-access`, where no sandbox is left. The guard
-  still denies writes to `/usr/share/omarchy`, the tree `omarchy update`
-  overwrites, while leaving reads free.
-- **Zero intrusion.** No shims, no `PATH` edits, no `~/.bashrc`, fish,
-  `environment.d`, Hyprland, menu, or default-agent writes. The agent bundle is
-  one npm package and one command; the bar widget comes from the Omarchy plugin.
-- **Built for Omarchy's native dsh support, not against it.** The bundle lands
-  in the `web` profile that `dsh web` boots, so Omarchy keeps owning the
-  launcher, the picker, and the usage panel.
-- **Renders in dsh web.** The same tools show as compact Omarchy cards in a web
-  session, with the raw JSON behind a disclosure; the generic JSON card is gone.
-- **The bar owns the controls.** The Omarchy bar widget starts and stops
-  `dsh web`, opens the web UI or the dsh CLI, and shows live cards for the
-  server, theme, displays, workspaces, failed units, and DeepSeek usage.
-- **Small and auditable.** Five tools, one hook, one prompt section. There is no
-  preset snapshot to resync on every dsh release; `lib/` is committed and CI
-  checks it against `src/`.
-
-## Status: Omarchy's native dsh support is in review
-
-[#14455][pr14455] adds dsh as a coding agent, and [#14040][pr14040] consolidates
-it with the rest of the agent roster. On a released Omarchy without either,
-dsh is not in the agent list yet: install it with mise and launch `dsh web`.
-Once they land, Omarchy installs the lazy mise tool, adds the menu row, launches
-`dsh web`, and counts dsh in the agents panel. Either way, the tools below come
-from this bundle.
+It is a `dsh` plugin, not an installer. Omarchy is taking over installing,
+launching, and selecting `dsh` ([#14455][pr14455], [#14040][pr14040]); this
+plugin adds the Omarchy knowledge the agent needs.
 
 [pr14455]: https://github.com/omacom/omarchy/pull/14455
 [pr14040]: https://github.com/omacom/omarchy/pull/14040
 
-## What it adds
+## What you get
 
-| Contribution | Kind | Effect |
-|---|---|---|
-| `omarchy_status` | Tool | Distro build, theme, Hyprland version, monitors, workspaces, active window, failed user units. |
-| `omarchy_catalog` | Tool | Searches `omarchy commands --json` for routes, usage, and sudo requirements. |
-| `omarchy_theme` | Tool | Lists themes, reads the current theme, or applies one. |
-| `omarchy_hypr` | Tool | Reads live Hyprland state as JSON or reloads the configuration. |
-| `omarchy_diagnose` | Tool | Recent crashes from `coredumpctl` and failed system/user units. |
-| Guard | `tools/pre-execute` | Denies writes under `/usr/share/omarchy`; reads stay allowed. |
-| Conventions | System prompt | Read state before changing it, prefer Omarchy tooling, keep user changes under `~/.config`. |
-| Bar widget | Omarchy `bar-widget` | Top-right AI icon: start/stop `dsh web`, open the web UI or CLI, and read Omarchy state. Ships with the Omarchy plugin, not the npm bundle. |
-
-Installing the bundle adds these to every agent in the profile. There is no
-separate preset to select.
+- **Five tools** — machine status, a command catalog, themes, Hyprland state,
+  and crash/unit diagnostics.
+- **A guard** — the agent cannot write to `/usr/share/omarchy`.
+- **A prompt** — read before changing, prefer `omarchy` commands, keep your
+  changes in `~/.config`.
+- **A bar panel** — start/stop `dsh web`, open the web UI or CLI, and see the
+  server, theme, displays, workspaces, failed units, and DeepSeek usage.
+- **Pretty cards in dsh web** — tool results show as compact Omarchy cards
+  instead of raw JSON.
 
 ## Install
 
-The npm package is the primary distribution: `dsh-omarchy-agent`.
+`dsh` must be on your `PATH`. If it is missing, the installer adds it with mise.
 
-`dsh` must be on `PATH`. The installer installs it with mise when it is missing
-(pass `--no-install-dsh` to fail instead). Once Omarchy's dsh support lands
-([#14455][pr14455] / [#14040][pr14040]), `omarchy default agent dsh` installs it
-through Omarchy too.
-
-### Recommended: npm package
+**Main way: npm**
 
 ```sh
 mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
 ```
 
-The installer ensures `dsh` and `pnpm`, then adds the bundle to the `web`
-profile. `--headless` also installs into the one-shot profile, `--profile
-<name>` targets another profile, and `--dry-run` prints the plan first. The npm
-package installs the agent capabilities only; the bar widget is part of the
-Omarchy shell plugin below.
+That adds the plugin to the `web` profile used by `dsh web`. Add `--headless`
+for one-shot runs, or `--dry-run` to see the plan first.
 
-With `dsh` and `pnpm` already on `PATH`, the npm package can go straight into
-the profile:
+Already have `dsh` and `pnpm`? Skip the installer:
 
 ```sh
 dsh plugin --profile web add dsh-omarchy-agent
 ```
 
-Plain `npm install -g dsh-omarchy-agent` works when mise is not present.
-
-### From a checkout
-
-```sh
-dsh plugin --profile web add .
-```
-
-Local edits stay live. The installer detects a checkout and adds it by path; an
-npm-installed copy is added by package name, so the profile keeps its own copy
-that a package-manager prune cannot break. Re-running the installer (or `dsh
-plugin --profile web update dsh-omarchy-agent`) refreshes the profile's copy.
-
-### As an Omarchy shell plugin
+**Want the top-bar panel?** Install the Omarchy plugin too:
 
 ```sh
 omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
+omarchy plugin enable dsh-omarchy-agent right   # put it on the right
 ```
 
-The plugin's service runs the npm installer once, in the background. This is
-also the path that installs the bar widget and its panel.
+**From a checkout:** `dsh plugin --profile web add .`
 
-The target is the `web` profile because `dsh web` boots it (and Omarchy's
-launcher runs `dsh web`). Add `--headless` for
-`dsh --profile headless "run the tests"`.
+Restart `dsh web` if it is already running.
 
-Launch it:
+## Use it
 
-```sh
-dsh web         # today
-omarchy agent   # once Omarchy lists dsh; SUPER + SHIFT + CTRL + A does the same
+In a dsh web session, just ask:
+
+```text
+what theme am I on, and which monitors are connected?
+list the Omarchy commands for changing the wallpaper
+switch to Tokyo Night and reload Hyprland
+why did the bar crash?
 ```
 
-A running profile keeps its bundle set from when it started: restart `dsh web`
-after installing.
+Or use the bar panel:
 
-## Configuration
+- **Left click** — open the panel.
+- **Right click** — open the web UI.
+- **Middle click** — open a terminal with the dsh CLI.
 
-Override the bundle row in the profile's `cordis.patch.yml`
-(`~/.dsh/profiles/web/cordis.patch.yml`):
+The panel's **Start dsh web** runs a small systemd user unit (`dsh-web`), so the
+server survives a shell restart. Check it with
+`systemctl --user status dsh-web`.
+
+If you keep your key in an environment variable, put it in
+`~/.config/dsh/web.env`. Otherwise sign in once in the web UI.
+
+## Settings
+
+The panel has a few settings in `shell.json`:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `port` | `3080` | Web UI port. |
+| `permissionMode` | `danger-full-access` | Permission mode for the server. |
+| `workingDirectory` | `~/Work` | Where new sessions start. |
+| `refreshIntervalSec` | `10` | How often the cards refresh. |
+
+To change the plugin config (for example, turn command approval back on), edit
+`~/.dsh/profiles/web/cordis.patch.yml`:
 
 ```yaml
 - id: omarchy-agent
   config:
-    omarchyBin: omarchy
-    protectedPath: /usr/share/omarchy
-    privilegedTokens: []
-    commandTimeoutMs: 30000
+    privilegedTokens: [sudo, pacman]
 ```
 
-| Field | Default | Meaning |
-|---|---|---|
-| `omarchyBin` | `omarchy` | Binary used for Omarchy commands. |
-| `protectedPath` | `/usr/share/omarchy` | Package-owned tree that mutations are denied against. |
-| `privilegedTokens` | `[]` | Tokens that trigger the approval gate. Empty gates nothing. |
-| `commandTimeoutMs` | `15000` | Per-command timeout for spawned Omarchy/hyprctl commands. |
+`privilegedTokens` is empty by default because Omarchy launches agents with full
+access.
 
 ## Safety
 
-- The guard is defense-in-depth, not a sandbox. Tools run with the Harness
-  process's OS permissions.
-- Reads of `/usr/share/omarchy` are allowed; writes through `write`, `edit`,
-  `str_replace_editor`, `apply_patch`, or `bash`/`pwsh` are denied. This is the
-  one rule that still matters under `DSH_PERMISSION_MODE=danger-full-access`,
-  where no sandbox is left to catch the write.
-- `privilegedTokens` is empty by default because Omarchy launches its default
-  agents with full access; an `ask` without an approval service degrades to
-  deny, which would make dsh less capable than the other agents. Set the list
-  (`[sudo, pkexec, pacman, yay, paru, makepkg]`) to opt back into approval.
-- The guard does not inspect arbitrary code run through PTC `run_code`; use a
-  sandboxed shell or disable PTC mode if that matters.
-
-## Relationship to Omarchy's native dsh support
-
-| Concern | Owner |
-|---|---|
-| Install `dsh` (lazy mise tool, prerelease-aware) | Omarchy |
-| Select the default agent, menu row, icon | Omarchy |
-| Launch (`omarchy agent`, keybinding, `agent prompt`) | Omarchy |
-| DeepSeek balance and dsh session usage in the panel | Omarchy |
-| **Omarchy tools, guard, conventions** | **this bundle** |
-| **Adding the bundle to the `web` profile** | **this bundle** |
-
-The first four rows are Omarchy's once [#14455][pr14455] / [#14040][pr14040]
-merge; on a released Omarchy without them, install dsh with mise and launch
-`dsh web`. The last two rows are always this bundle.
-
-Nothing here edits `/usr/share/omarchy`, `~/.bashrc`, fish config,
-`environment.d`, Hyprland bindings, the Omarchy menu, or the default-agent file.
-Older versions of this project did; `uninstall.sh` removes those leftovers.
-
-## Using Omarchy from dsh web
-
-The bundle installs into the `web` profile, so the same tools are available in a
-dsh web session. Ask for what you want; the agent calls the tool and the call
-renders as a compact Omarchy card, with the raw JSON behind a disclosure:
-
-```text
-what theme am I on, and which monitors are connected?
-list Omarchy commands for changing the wallpaper
-switch to Tokyo Night and reload Hyprland
-read the last crash and the failed user units
-```
-
-The **Plugins** page shows the bundle and lets you switch the `omarchy-agent`
-row off and on. Detailed configuration stays in the profile patch
-(`~/.dsh/profiles/web/cordis.patch.yml`); a web form for it is not shipped yet.
-
-## Bar widget
-
-`omarchy plugin add` also installs a bar widget, so the same controls sit in
-the top-right of the Omarchy bar:
-
-- **Left click** opens the panel: start/stop `dsh web`, open the web UI, open a
-  terminal with the dsh CLI, and read the local Omarchy state.
-- **Right click** opens or focuses the web UI directly.
-- **Middle click** opens a terminal with the dsh CLI.
-
-`Start dsh web` runs a transient systemd user unit (`dsh-web`) rather than a
-Quickshell process, so a shell restart does not kill the server:
-
-```sh
-systemctl --user status dsh-web
-systemctl --user stop dsh-web
-```
-
-The cards show the web UI state and port, the current theme, display and
-workspace counts, failed user units, and the DeepSeek record once
-`omarchy-agent-usage-deepseek` writes one. `port`, `workingDirectory`,
-`permissionMode`, and `refreshIntervalSec` are widget settings in
-`shell.json`. The server reads credentials from dsh's managed store
-(`~/.dsh/.credentials.yaml`) or, if you keep a key in the environment, from
-`~/.config/dsh/web.env`, which the start command sources. The npm bundle does
-not install this widget; it is part of the Omarchy plugin. If it is installed
-but not on the bar, place it with
-`omarchy plugin enable dsh-omarchy-agent right` or the bar settings.
-
-## Using the tools
-
-In a dsh session, ask for what you want and the tools are available:
-
-```text
-what theme am I on, and which monitors are connected?
-list Omarchy commands for changing the wallpaper
-switch to Tokyo Night and reload Hyprland
-read the last crash and the failed user units
-```
-
-The model can also discover commands itself with `omarchy_catalog`, so it does
-not have to guess routes.
+- The guard blocks writes to `/usr/share/omarchy`; reads are fine.
+- It is not a sandbox: tools run with your user permissions.
+- `dsh web` listens on `127.0.0.1` only. Do not expose it to the internet.
 
 ## Troubleshooting
 
-- **`dsh` not found** — install it with `mise use -g npm:@deepseek-ai/dsh@latest`
-  (or, once Omarchy lists dsh, `omarchy default agent dsh`), then open a new
-  shell.
-- **The tools are missing in a session** — confirm the bundle is installed with
-  `dsh --profile web --dump-config | grep dsh-omarchy-agent`, then restart the
-  profile (`dsh plugin` changes apply at the next start).
-- **Port 3080 already in use** — a `dsh web` profile is already running. Open
-  its URL instead of launching a second one.
-- **The bar icon is missing** — the widget ships with the Omarchy shell plugin,
-  not the npm bundle. Add or update it with `omarchy plugin add ... --enable`,
-  then place it with `omarchy plugin enable dsh-omarchy-agent right`.
-- **`omarchy agent` does not open dsh** — a released Omarchy without
-  [#14455][pr14455] / [#14040][pr14040] does not list dsh yet; use `dsh web`.
-  Once it does, select it with `omarchy default agent dsh`.
-- **`dsh plugin` says pnpm was not found** — `mise use -g pnpm@latest`.
-- **`mise use -g npm:dsh-omarchy-agent` reports "no versions found"** — mise
-  hides npm releases newer than 24 hours (`minimum_release_age`). Pin the
-  version: `mise use -g npm:dsh-omarchy-agent@<version>`.
+- **`dsh` not found** — `mise use -g npm:@deepseek-ai/dsh@latest`, then open a
+  new shell.
+- **Tools missing** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`,
+  then restart `dsh web`.
+- **Bar icon missing** — install the Omarchy plugin (see above), then run
+  `omarchy plugin enable dsh-omarchy-agent right`.
+- **Port 3080 in use** — a `dsh web` is already running; open its URL instead.
+- **`omarchy agent` does not open dsh** — released Omarchy does not list dsh yet;
+  use `dsh web` or the bar panel.
 
 ## Uninstall
 
@@ -270,20 +132,7 @@ not have to guess routes.
 dsh-omarchy-agent-uninstall
 ```
 
-or, from a checkout:
-
-```sh
-./uninstall.sh
-```
-
-This removes the bundle from `web`, `headless`, and the profiles older versions
-created, and deletes the shims, launcher, shell blocks, and menu row those
-versions wrote. It leaves `dsh` installed and does not change the default agent;
-switch with `omarchy default agent <name>`. Pass `--remove-dsh` to remove a
-mise-installed dsh too.
-
-If you installed it as an Omarchy plugin, run the uninstaller from the plugin
-directory first, then remove the plugin:
+If you installed the Omarchy plugin:
 
 ```sh
 cd ~/.config/omarchy/plugins/dsh-omarchy-agent && ./uninstall.sh
@@ -293,43 +142,21 @@ omarchy plugin remove dsh-omarchy-agent
 ## Development
 
 ```sh
-mise run install       # npm install
-mise run build         # tsc -> lib/ and the browser client -> lib/client.js
-mise run test          # build + keyless smoke tests (host and client)
-mise run pack          # show the npm tarball contents
+mise run install   # npm install
+mise run build     # build the host plugin and the web client
+mise run test      # smoke tests
 ```
 
-The bundle is a standard Cordis plugin: `src/index.ts` exports `name`, `inject`,
-`Config`, and `apply`, and registers tools, the guard, and the prompt section.
-`src/client/index.tsx` is the browser half: it registers one `tool.call.toolview`
-view per tool through the dsh web client's slot system. `lib/` is committed; CI
-checks that it matches `src/`.
+The agent plugin lives in `src/`; the web cards in `src/client/`. `lib/` is
+committed, and CI checks it matches the source.
 
-## Model Experience
+## Notes
 
-The bundle registers five tools and one system-prompt section. Tool schemas and
-the conventions text are model-visible and are logged by the session.
-
-- **Token effect** — conditional: tool schemas add fixed tokens while visible,
-  and the conventions section adds a short fixed block to every request.
-- **KV Cache effect** — append-only. The section text changes only with plugin
-  configuration; the tools do not rewrite earlier request tokens.
-
-## Known limitations
-
-- **Developer-preview dependency** — dsh has no stable release yet (every
-  published version is an alpha or rc). The bundle's peer ranges are unversioned
-  and optional, and the build-time dev dependencies are pinned to the release
-  the bundle is built against (`0.2.0-rc.2`). Bump them together when dsh breaks
-  a plugin API.
-- **No terminal UI** — dsh ships none. `dsh web` is the interactive surface;
-  `dsh --profile headless "task"` is one-shot and exits after printing the
-  answer.
-- **Session-log upload is on by default in dsh** and is separate from
-  `DSH_TELEMETRY_MODE`. Turn it off under _Settings → General → Upload Session
-  Log_ in the browser UI; `DSH_TELEMETRY_MODE=DISABLED` covers OTel only.
-- **`danger-full-access`** — Omarchy starts agents with no approval. The guard
-  keeps the package-owned tree read-only, but nothing else is fenced.
+- `dsh` has no stable release yet; every version is an alpha or rc.
+- `dsh` ships no terminal UI. `dsh web` is the interactive app;
+  `dsh --profile headless "task"` is one-shot.
+- DeepSeek uploads session logs by default. Turn that off in the web UI under
+  _Settings → General → Upload Session Log_.
 
 ## License
 
