@@ -179,6 +179,9 @@ BarIconButton 的文档在哪？
   Omarchy agents 面板负责，`omarchy_agent` 会说明当前哪一边可用。
 - **Stop dsh web 是灰色的** — 端口被另一个 `dsh web` 占用；去它启动的地方停，
   而不是从面板停。
+- **Start dsh web 报 `EADDRINUSE`** — 0.4.1 用 `curl -f` 探测，把已运行 dsh web
+  的 401 当成未运行，于是又启动一个。升级到 0.4.2；它把任何 HTTP 响应都视为
+  端口已占用。
 - **`omarchy agent` 打不开 dsh** — 已发布的 Omarchy 还不认识 dsh；用 `dsh web`
   或顶栏面板。
 
@@ -221,6 +224,9 @@ agent 插件在 `src/`；web 卡片在 `src/client/`。`lib/` 已提交，CI 会
 
 ## 版本说明
 
+- **0.4.2** — 面板把 `127.0.0.1:3080` 的任何 HTTP 响应都视为服务器正在运行。
+  dsh web 的 `/` 返回 401，0.4.1 的 `curl -f` 探测因此误判并启动第二个实例，
+  报 `EADDRINUSE`。
 - **0.4.1** — 面板改为开在顶栏图标下方，不再按整条 bar 居中。
 - **0.4.0** — 新增只读的 `omarchy_source`、`omarchy_agent`、`omarchy_plugin`、
   `omarchy_shell`；明确 default agent 边界；移除加载即安装的 service；用量交给

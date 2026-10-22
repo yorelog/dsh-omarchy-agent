@@ -195,6 +195,9 @@ access.
   which side is available.
 - **Stop dsh web is disabled** — another `dsh web` owns the port; stop it where
   it started instead of from the panel.
+- **Start dsh web failed with `EADDRINUSE`** — 0.4.1's `curl -f` probe read the
+  401 from an already-running dsh web as down, so it started a second one.
+  Update to 0.4.2; it treats any HTTP response as an occupied port.
 - **`omarchy agent` does not open dsh** — released Omarchy does not list dsh yet;
   use `dsh web` or the bar panel.
 
@@ -238,6 +241,9 @@ Releases run in GitHub Actions; see
 
 ## Release notes
 
+- **0.4.2** — The panel now treats any HTTP response from `127.0.0.1:3080` as a
+  running server. dsh web answers 401 on `/`, so 0.4.1's `curl -f` probe started
+  a second server and failed with `EADDRINUSE`.
 - **0.4.1** — The panel opens under its bar icon instead of the center of the bar.
 - **0.4.0** — Added read-only `omarchy_source`, `omarchy_agent`,
   `omarchy_plugin`, and `omarchy_shell`; stated the default-agent boundary;
