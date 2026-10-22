@@ -174,6 +174,8 @@ BarIconButton 的文档在哪？
   `perl` 当作写入（即使只读）；改用 `read` 工具、`cat`、`head` 或 `rg`。
 - **顶栏没有图标** — 安装上面的 Omarchy 插件，然后
   `omarchy plugin enable dsh-omarchy-agent right`。
+- **升级后面板还是旧的** — bar 会保留已经实例化的 widget；`omarchy plugin update`
+  后如果面板仍显示旧布局或旧状态，运行 `omarchy restart shell`。
 - **3080 端口被占用** — 已经有 `dsh web` 在运行，打开它的 URL。
 - **用量为空** — 已发布的 Omarchy 没有 DeepSeek collector；quattro/#14040 之后由
   Omarchy agents 面板负责，`omarchy_agent` 会说明当前哪一边可用。

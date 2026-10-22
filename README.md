@@ -189,6 +189,9 @@ access.
   `cat`, `head`, or `rg` instead.
 - **Bar icon missing** — install the Omarchy plugin (see above), then run
   `omarchy plugin enable dsh-omarchy-agent right`.
+- **Old panel after an update** — the bar keeps its instantiated widget; run
+  `omarchy restart shell` after `omarchy plugin update` if the panel still shows
+  the old layout or status.
 - **Port 3080 in use** — a `dsh web` is already running; open its URL instead.
 - **Usage missing** — released Omarchy has no DeepSeek collector. After
   quattro/#14040 the Omarchy agents panel owns usage; `omarchy_agent` reports
