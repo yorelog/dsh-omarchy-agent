@@ -3,7 +3,7 @@
 #
 # Omarchy owns installing, launching (`dsh web`), and selecting dsh as the
 # default agent. This script only adds the bundle to the profile that launcher
-# runs, so nothing under /usr/share/omarchy or ~/.config is edited here.
+# runs; nothing under /usr/share/omarchy is edited here.
 #
 # Usage: ./install.sh [options]
 set -euo pipefail
