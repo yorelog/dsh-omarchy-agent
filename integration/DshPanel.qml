@@ -49,6 +49,7 @@ Panel {
 
   property string lastError: ""
   property bool pendingOpen: false
+  property bool pendingStart: false
   property int pendingTicks: 0
 
   onOpenedChanged: {
@@ -73,14 +74,21 @@ Panel {
   }
 
   function startServer() {
-    if (startProc.running) return
+    if (startProc.running || pendingStart) return
     if (externalServer) {
       lastError = "dsh web is already running outside the panel on port " + port
       return
     }
+    if (portOpen) {
+      if (!pendingOpen) lastError = "dsh web is already running on port " + port
+      return
+    }
+    // A fresh port probe decides whether the server is really absent. Without
+    // it, a click before the first refresh can start a second dsh web on 3080.
     lastError = ""
     pendingTicks = 0
-    startProc.running = true
+    pendingStart = true
+    if (!portProc.running) portProc.running = true
   }
 
   function stopServer() {
@@ -411,9 +419,18 @@ Panel {
 
   Process {
     id: portProc
-    command: ["bash", "-c", "curl -sf -o /dev/null http://127.0.0.1:" + root.port]
+    // dsh web answers 401 on / without a session, so -f would report a live
+    // server as down. Any HTTP response means the port is already in use.
+    command: ["bash", "-c", "curl -s --max-time 2 -o /dev/null http://127.0.0.1:" + root.port]
     onExited: function(exitCode) {
       root.portOpen = exitCode === 0
+      if (!root.pendingStart) return
+      root.pendingStart = false
+      if (root.portOpen) {
+        if (!root.pendingOpen) root.lastError = "dsh web is already running on port " + root.port
+        return
+      }
+      if (!root.unitActive) root.startProc.running = true
     }
   }
 
