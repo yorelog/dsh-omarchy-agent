@@ -32,8 +32,18 @@ const bash = (command) => ({ name: 'bash', arguments: { command } })
 
 assert.deepEqual(
   [...tools.keys()],
-  ['omarchy_status', 'omarchy_catalog', 'omarchy_theme', 'omarchy_hypr', 'omarchy_diagnose', 'omarchy_source'],
-  'expected the six Omarchy tools',
+  [
+    'omarchy_status',
+    'omarchy_catalog',
+    'omarchy_theme',
+    'omarchy_hypr',
+    'omarchy_diagnose',
+    'omarchy_source',
+    'omarchy_agent',
+    'omarchy_plugin',
+    'omarchy_shell',
+  ],
+  'expected the nine Omarchy tools',
 )
 assert.equal(section?.name, 'dsh-omarchy-agent:conventions', 'expected the conventions section')
 assert.equal(typeof guard, 'function', 'expected the pre-execute guard')
@@ -43,6 +53,9 @@ assert.equal(typeof guard, 'function', 'expected the pre-execute guard')
 const promptText = section?.text?.() ?? ''
 assert.match(promptText, /default agents, not its administrator/, 'prompt should state the default-agent boundary')
 assert.match(promptText, /omarchy_source/, 'prompt should route Omarchy source reads through omarchy_source')
+assert.match(promptText, /omarchy_agent/, 'prompt should route agent state through omarchy_agent')
+assert.match(promptText, /omarchy_plugin/, 'prompt should route plugin inspection through omarchy_plugin')
+assert.match(promptText, /omarchy_shell/, 'prompt should route shell inspection through omarchy_shell')
 assert.match(promptText, /read tool/, 'prompt should keep the read tool as the escape hatch')
 assert.match(promptText, /omarchy-restart-shell/, 'prompt should include the shell restart step')
 assert.match(promptText, /omarchy capture screenshot/, 'prompt should include visual verification')
@@ -94,4 +107,4 @@ assert.equal((await gatedDecide(bash('systemctl --failed'))).kind, 'allow')
 assert.equal((await gatedDecide(bash('ls -la'))).kind, 'allow')
 assert.equal((await gatedDecide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
 
-console.log('smoke test passed: 6 tools, 1 section, guard decisions correct')
+console.log('smoke test passed: 9 tools, 1 section, guard decisions correct')

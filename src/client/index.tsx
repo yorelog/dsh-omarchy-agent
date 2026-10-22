@@ -19,6 +19,10 @@ const TOOLS = [
   'omarchy_theme',
   'omarchy_hypr',
   'omarchy_diagnose',
+  'omarchy_source',
+  'omarchy_agent',
+  'omarchy_plugin',
+  'omarchy_shell',
 ] as const
 
 const LABELS: Record<string, string> = {
@@ -27,6 +31,10 @@ const LABELS: Record<string, string> = {
   omarchy_theme: 'Omarchy theme',
   omarchy_hypr: 'Hyprland',
   omarchy_diagnose: 'Omarchy diagnostics',
+  omarchy_source: 'Omarchy source',
+  omarchy_agent: 'Omarchy agents',
+  omarchy_plugin: 'Omarchy plugins',
+  omarchy_shell: 'Omarchy shell',
 }
 
 /**
@@ -138,6 +146,27 @@ function summaryOf(tool: string, value: unknown): string | undefined {
       const failed = asArray(v.systemUnits).length + asArray(v.userUnits).length
       return `${crashes} crash${crashes === 1 ? '' : 'es'} · ${failed} failed unit${failed === 1 ? '' : 's'}`
     }
+    case 'omarchy_source': {
+      const matches = asArray(v.matches).length
+      if (matches > 0) return `${matches} match${matches === 1 ? '' : 'es'}`
+      const files = asArray(v.files).length
+      return `${files} file${files === 1 ? '' : 's'}`
+    }
+    case 'omarchy_agent': {
+      if (str(v.action) === 'usage') {
+        const count = num(v.count) ?? asArray(v.records).length
+        return `${count} usage record${count === 1 ? '' : 's'}`
+      }
+      const agent = str(v.defaultAgent) || 'none'
+      return `default: ${agent} · dsh ${v.supportsDsh === true ? 'supported' : 'not listed'}`
+    }
+    case 'omarchy_plugin': {
+      if (str(v.action) === 'validate') return v.ok === true ? 'valid' : 'invalid'
+      const count = num(v.count) ?? asArray(v.plugins).length
+      return `${count} plugin${count === 1 ? '' : 's'}`
+    }
+    case 'omarchy_shell':
+      return str(v.action)
     default:
       return undefined
   }
@@ -233,6 +262,82 @@ function Body({ tool, value, text }: { tool: string; value: unknown; text: strin
               <code style={code}>{unit}</code>
             </div>
           ))}
+          <Raw value={v} />
+        </>
+      )
+    }
+    case 'omarchy_source': {
+      const matches = asArray(v.matches).map(asRecord).filter((match): match is Json => match !== undefined)
+      const files = asArray(v.files).map(asRecord).filter((file): file is Json => file !== undefined)
+      return (
+        <>
+          {matches.slice(0, 8).map((match) => (
+            <div key={`${str(match.file)}:${num(match.line)}`} style={muted}>
+              <code style={code}>
+                {str(match.file) ?? '?'}:{num(match.line) ?? 0}
+              </code>
+            </div>
+          ))}
+          {files.slice(0, 8).map((file) => (
+            <div key={str(file.path) ?? '?'} style={muted}>
+              <code style={code}>{str(file.path) ?? '?'}</code>
+            </div>
+          ))}
+          <Raw value={v} />
+        </>
+      )
+    }
+    case 'omarchy_agent': {
+      const records = asArray(v.records).map(asRecord).filter((record): record is Json => record !== undefined)
+      return (
+        <>
+          <Rows
+            rows={[
+              ['Default', str(v.defaultAgent) || 'none'],
+              ['dsh listed', v.supportsDsh === true],
+              ['dsh installed', v.dshInstalled === true],
+              ['Usage collector', v.usageCollector === true],
+              ['Agents panel', v.agentsPanel === true],
+            ]}
+          />
+          {records.slice(0, 8).map((record) => (
+            <div key={str(record.id) ?? '?'} style={row}>
+              <code style={code}>{str(record.id) ?? '?'}</code>
+              <span style={muted}>{str(record.usageStatusText) || str(record.tierLabel) || ''}</span>
+            </div>
+          ))}
+          <Raw value={v} />
+        </>
+      )
+    }
+    case 'omarchy_plugin': {
+      const plugins = asArray(v.plugins).map(asRecord).filter((plugin): plugin is Json => plugin !== undefined)
+      return (
+        <>
+          {str(v.action) === 'validate' ? (
+            <Rows rows={[['Valid', v.ok === true], ['Path', str(v.path)]]} />
+          ) : (
+            plugins.slice(0, 8).map((plugin) => (
+              <div key={str(plugin.id) ?? '?'} style={row}>
+                <code style={code}>{str(plugin.id) ?? '?'}</code>
+                <span style={muted}>{plugin.enabled === true ? 'enabled' : 'disabled'}</span>
+              </div>
+            ))
+          )}
+          <Raw value={v} />
+        </>
+      )
+    }
+    case 'omarchy_shell': {
+      const data = v.data
+      return (
+        <>
+          <Rows
+            rows={[
+              ['Action', str(v.action)],
+              ['Entries', Array.isArray(data) ? data.length : undefined],
+            ]}
+          />
           <Raw value={v} />
         </>
       )

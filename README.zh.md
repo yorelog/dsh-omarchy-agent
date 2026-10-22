@@ -24,6 +24,8 @@ coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 操作
   `omarchy commands --json`，用真实存在的命令。
 - **它找得到源码。** `omarchy_source` 在 Omarchy 文档、skill、shell 源码里
   带行号检索——不会撞上 shell 读取的 guard。
+- **它只查看，不接管。** `omarchy_plugin`、`omarchy_shell`、`omarchy_agent`
+  只读地查看插件、bar 状态、默认 agent 和用量记录；安装、选择、启用仍由你决定。
 - **它弄不坏 Omarchy。** `/usr/share/omarchy` 对 agent 只读；你的改动留在
   `~/.config`。
 - **一个图标控制全部。** 在顶栏启动/停止 `dsh web`、打开 Web UI 或 CLI，查看

@@ -4,6 +4,7 @@ import { defineTool, type ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { Config } from './config.js'
 import { lines, parseJson, run, type RunOptions } from './exec.js'
+import { registerInspectTools } from './inspect.js'
 import { registerSource } from './source.js'
 
 const OS_RELEASE = '/etc/os-release'
@@ -33,6 +34,7 @@ export function applyTools(ctx: Context, config: Config): void {
   registerHypr(ctx, config)
   registerDiagnose(ctx, config)
   registerSource(ctx, config)
+  registerInspectTools(ctx, config)
 }
 
 function registerStatus(ctx: Context, config: Config): void {
@@ -103,11 +105,15 @@ function registerCatalog(ctx: Context, config: Config): void {
     defineTool({
       name: 'omarchy_catalog',
       description:
-        'Search the Omarchy command catalog. Returns matching routes with their summary, argument usage, and whether they need sudo. Use it to discover first-class Omarchy commands instead of hand-editing configuration.',
+        'Search the Omarchy command catalog. Returns matching routes with their summary, argument usage, aliases, concrete binary, and whether they need sudo. Pass a route to get that command’s own --help --json. Use it to discover first-class Omarchy commands instead of hand-editing configuration.',
       parameters: {
         query: { type: 'string', description: 'Case-insensitive substring matched against route, summary, and group.' },
         all: { type: 'boolean', description: 'Include hidden commands. Defaults to false.' },
         requiresSudoOnly: { type: 'boolean', description: 'Return only commands declared as requiring sudo.' },
+        route: {
+          type: 'string',
+          description: 'Optional route to describe (for example "theme set" or "omarchy agent crash"). Returns its --help --json instead of a listing.',
+        },
       },
       output: {
         schema: {
@@ -116,14 +122,27 @@ function registerCatalog(ctx: Context, config: Config): void {
           properties: {
             count: { type: 'integer' },
             commands: { type: 'json' },
+            help: { type: 'json' },
+            error: { type: 'string' },
           },
         },
         render: (_args, value) => [{ type: 'text', text: jsonText(value) }],
       },
       async execute(args, exec) {
+        const o = opts(config, exec)
+        if (args.route?.trim()) {
+          const parts = args.route.trim().split(/\s+/)
+          if (parts[0] === 'omarchy') parts.shift()
+          if (parts.length === 0 || parts.some((part) => !/^[a-z0-9-]+$/i.test(part))) {
+            return { count: 0, commands: [], error: `invalid route: ${args.route}` }
+          }
+          const outcome = await run(config.omarchyBin, [...parts, '--help', '--json'], o)
+          if (!outcome.ok) return { count: 0, commands: [], error: outcome.stderr }
+          return { count: 0, commands: [], help: parseJson(outcome.stdout) ?? outcome.stdout }
+        }
         const argv = ['commands', '--json']
         if (args.all === true) argv.splice(1, 0, '--all')
-        const outcome = await run(config.omarchyBin, argv, opts(config, exec))
+        const outcome = await run(config.omarchyBin, argv, o)
         const parsed = parseJson(outcome.stdout)
         const source =
           parsed !== null && typeof parsed === 'object' && Array.isArray((parsed as { commands?: unknown }).commands)
@@ -142,6 +161,14 @@ function registerCatalog(ctx: Context, config: Config): void {
           args: entry.args ?? null,
           requires_sudo: entry.requires_sudo === true,
           examples: entry.examples ?? null,
+          group: entry.group ?? null,
+          name: entry.name ?? null,
+          binary: entry.binary ?? null,
+          aliases: entry.aliases ?? [],
+          routes: entry.routes ?? [],
+          flags: entry.flags ?? null,
+          filename_route: entry.filename_route ?? null,
+          hidden: entry.hidden === true,
         }))
         return { count: commands.length, commands }
       },

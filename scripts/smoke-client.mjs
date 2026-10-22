@@ -34,7 +34,17 @@ mod.apply(ctx)
 
 assert.deepEqual(
   registered.map((entry) => entry.spec.key),
-  ['omarchy_status', 'omarchy_catalog', 'omarchy_theme', 'omarchy_hypr', 'omarchy_diagnose'],
+  [
+    'omarchy_status',
+    'omarchy_catalog',
+    'omarchy_theme',
+    'omarchy_hypr',
+    'omarchy_diagnose',
+    'omarchy_source',
+    'omarchy_agent',
+    'omarchy_plugin',
+    'omarchy_shell',
+  ],
   'one tool view per Omarchy tool',
 )
 assert.ok(
@@ -46,4 +56,4 @@ assert.ok(
   'every registration has a component',
 )
 
-console.log('client smoke test passed: 5 tool views registered')
+console.log('client smoke test passed: 9 tool views registered')

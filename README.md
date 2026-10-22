@@ -25,6 +25,9 @@ plugin adds the Omarchy knowledge the agent needs.
   searches `omarchy commands --json` and uses the one that exists.
 - **It finds the source.** `omarchy_source` searches Omarchy docs, skills, and
   shell source with line numbers — no shell-reader guard collisions.
+- **It looks without taking over.** `omarchy_plugin`, `omarchy_shell`, and
+  `omarchy_agent` inspect plugins, bar state, the default agent, and usage
+  records read-only; installing, selecting, and enabling stay with you.
 - **It cannot break Omarchy.** `/usr/share/omarchy` is read-only to the agent;
   your changes stay in `~/.config`.
 - **One icon controls the rest.** Start or stop `dsh web`, open the web UI or
