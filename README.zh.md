@@ -32,6 +32,29 @@ coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 操作
   server、主题、显示器、失败单元和当前默认 agent。
 - **卡片，不是 JSON。** 工具结果在 dsh web 会话里显示成小的 Omarchy 卡片。
 
+## 边界
+
+dsh 是 Omarchy 的 default agent 之一，不是管理员。检查类工具只读：dsh 可以读桌面
+状态、命令、文档、插件和用量记录，但不会安装 dsh、选择默认 agent、启停插件或改
+遥测；这些由你或 Omarchy 决定。
+
+## 工具
+
+| 工具 | 读什么 / 做什么 |
+|---|---|
+| `omarchy_status` | 主题、显示器、工作区、活动窗口、失败的用户单元。 |
+| `omarchy_catalog` | 搜索 `omarchy commands --json`，包括 alias、routes 和单命令 help。 |
+| `omarchy_theme` | 列出/读取主题，或应用主题（`set` 会改桌面）。 |
+| `omarchy_hypr` | Hyprland 状态，或重载配置（`reload` 会改桌面）。 |
+| `omarchy_diagnose` | 最近的崩溃和失败的系统/用户单元。 |
+| `omarchy_source` | 只读检索 Omarchy 文档、skill、shell 源码和配置。 |
+| `omarchy_agent` | 只读查看默认 agent、dsh 可用性和用量记录。 |
+| `omarchy_plugin` | 只读查看插件列表和校验结果。 |
+| `omarchy_shell` | 只读查看插件、配置和 bar 几何。 |
+
+只有 `omarchy_theme set` 和 `omarchy_hypr reload` 会改桌面；
+`omarchy_agent`、`omarchy_plugin`、`omarchy_shell`、`omarchy_source` 全部只读。
+
 ## 安装
 
 `dsh` 必须已经在 `PATH` 上。安装和选择由 Omarchy 负责；如果当前 Omarchy 还不认识
@@ -84,7 +107,13 @@ omarchy plugin enable dsh-omarchy-agent right   # 放到右侧
 列出 Omarchy 换壁纸的命令
 切到 Tokyo Night 并重载 Hyprland
 bar 为什么崩了？
+BarIconButton 的文档在哪？
+我的默认 agent 是谁？
+装了哪些 Omarchy 插件？
+怎么把 agents 小组件移到右边？
 ```
+
+最后一个只会返回 `omarchy bar move` 命令，dsh 不会替你启用或移动小组件。
 
 或者用顶栏面板：
 
@@ -122,9 +151,19 @@ bar 为什么崩了？
 
 ## 安全
 
+- 检查类工具只读。`omarchy_theme set` 和 `omarchy_hypr reload` 是仅有的桌面变更。
+- Omarchy 插件加载时不再自动跑安装器；需要 dsh bundle 时显式运行
+  `dsh-omarchy-agent-install`。
 - 守卫阻止写入 `/usr/share/omarchy`。读取请用 `read` 工具、`cat`、`head` 或 `rg`；包含 `sed`、`awk`、`python`、`node`、`perl` 的 shell 命令即使只读也会被当作写入。
 - 它不是沙箱：工具以你的用户权限运行。
 - `dsh web` 只监听 `127.0.0.1`。不要把它暴露到公网。
+
+## 兼容性
+
+| Omarchy | 行为 |
+|---|---|
+| 4.0.4 及更早 | `omarchy default agent` 里没有 dsh，也没有 DeepSeek collector；需要手动安装 dsh，`omarchy_agent` 会如实报告。 |
+| quattro / #14040 | dsh 是 default agent，并有 DeepSeek 用量 collector；只读工具会报告这些能力，用量由 Omarchy agents 面板负责。 |
 
 ## 故障排查
 
@@ -136,6 +175,10 @@ bar 为什么崩了？
 - **顶栏没有图标** — 安装上面的 Omarchy 插件，然后
   `omarchy plugin enable dsh-omarchy-agent right`。
 - **3080 端口被占用** — 已经有 `dsh web` 在运行，打开它的 URL。
+- **用量为空** — 已发布的 Omarchy 没有 DeepSeek collector；quattro/#14040 之后由
+  Omarchy agents 面板负责，`omarchy_agent` 会说明当前哪一边可用。
+- **Stop dsh web 是灰色的** — 端口被另一个 `dsh web` 占用；去它启动的地方停，
+  而不是从面板停。
 - **`omarchy agent` 打不开 dsh** — 已发布的 Omarchy 还不认识 dsh；用 `dsh web`
   或顶栏面板。
 

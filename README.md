@@ -36,6 +36,31 @@ plugin adds the Omarchy knowledge the agent needs.
 - **Cards instead of JSON.** Tool results render as small Omarchy cards inside a
   dsh web session.
 
+## The boundary
+
+dsh is one of Omarchy's default agents, not its administrator. The inspection
+tools are read-only: dsh can read desktop state, commands, docs, plugins, and
+usage records, but it does not install dsh, select the default agent,
+enable/disable plugins, or change telemetry. Those stay with you or Omarchy.
+
+## Tools
+
+| Tool | What it reads or does |
+|---|---|
+| `omarchy_status` | Theme, monitors, workspaces, active window, failed user units. |
+| `omarchy_catalog` | Search `omarchy commands --json`, including aliases, routes, and per-route help. |
+| `omarchy_theme` | List/read themes, or apply one (`set` changes the desktop). |
+| `omarchy_hypr` | Hyprland state, or reload the config (`reload` changes the desktop). |
+| `omarchy_diagnose` | Recent crashes and failed system/user units. |
+| `omarchy_source` | Read-only search over Omarchy docs, skills, shell source, and config. |
+| `omarchy_agent` | Read-only default agent, dsh availability, and usage records. |
+| `omarchy_plugin` | Read-only plugin list and validation. |
+| `omarchy_shell` | Read-only plugins, config, and bar geometry. |
+
+Only `omarchy_theme set` and `omarchy_hypr reload` change the desktop. Every
+`omarchy_agent`, `omarchy_plugin`, `omarchy_shell`, and `omarchy_source` call
+is read-only.
+
 ## Install
 
 `dsh` must already be on your `PATH`. Omarchy owns installing and selecting it;
@@ -91,7 +116,14 @@ what theme am I on, and which monitors are connected?
 list the Omarchy commands for changing the wallpaper
 switch to Tokyo Night and reload Hyprland
 why did the bar crash?
+where is BarIconButton documented?
+what is my default agent?
+which Omarchy plugins are installed?
+how do I move the agents widget to the right?
 ```
+
+The last question returns the `omarchy bar move` command; dsh does not enable or
+move the widget for you.
 
 Or use the bar panel:
 
@@ -131,9 +163,20 @@ access.
 
 ## Safety
 
+- The inspection tools are read-only. `omarchy_theme set` and
+  `omarchy_hypr reload` are the only desktop mutations.
+- The Omarchy plugin no longer runs an installer when it loads; run
+  `dsh-omarchy-agent-install` explicitly when you want the dsh bundle.
 - The guard blocks writes to `/usr/share/omarchy`. Read it with the `read` tool, `cat`, `head`, or `rg`; shell commands that also invoke `sed`, `awk`, `python`, `node`, or `perl` are treated as writes even when they only read.
 - It is not a sandbox: tools run with your user permissions.
 - `dsh web` listens on `127.0.0.1` only. Do not expose it to the internet.
+
+## Compatibility
+
+| Omarchy | Behavior |
+|---|---|
+| 4.0.4 and earlier | dsh is not in `omarchy default agent` and there is no DeepSeek collector; install dsh manually, and `omarchy_agent` reports the gap. |
+| quattro / #14040 | dsh is a default agent with a DeepSeek usage collector; the read-only tools report it, and the Omarchy agents panel owns usage. |
 
 ## Troubleshooting
 
@@ -147,6 +190,11 @@ access.
 - **Bar icon missing** — install the Omarchy plugin (see above), then run
   `omarchy plugin enable dsh-omarchy-agent right`.
 - **Port 3080 in use** — a `dsh web` is already running; open its URL instead.
+- **Usage missing** — released Omarchy has no DeepSeek collector. After
+  quattro/#14040 the Omarchy agents panel owns usage; `omarchy_agent` reports
+  which side is available.
+- **Stop dsh web is disabled** — another `dsh web` owns the port; stop it where
+  it started instead of from the panel.
 - **`omarchy agent` does not open dsh** — released Omarchy does not list dsh yet;
   use `dsh web` or the bar panel.
 

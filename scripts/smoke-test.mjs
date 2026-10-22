@@ -1,7 +1,12 @@
 // Keyless smoke test: verify the plugin registers everything and the guard
 // returns the intended decisions, without starting dsh or calling a model.
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { apply } from '../lib/index.js'
+
+const manifest = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'))
+assert.deepEqual(manifest.kinds, ['bar-widget'], 'the plugin must not mount a service that installs on load')
+assert.equal(manifest.entryPoints.service, undefined, 'no service entry point')
 
 const base = {
   omarchyBin: 'omarchy',
@@ -107,4 +112,4 @@ assert.equal((await gatedDecide(bash('systemctl --failed'))).kind, 'allow')
 assert.equal((await gatedDecide(bash('ls -la'))).kind, 'allow')
 assert.equal((await gatedDecide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
 
-console.log('smoke test passed: 9 tools, 1 section, guard decisions correct')
+console.log('smoke test passed: 9 tools, no service, 1 section, guard decisions correct')
