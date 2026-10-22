@@ -4,9 +4,9 @@ English | [中文](README.zh.md)
 
 **Omarchy capabilities for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).**
 
-A `dsh` plugin, not an installer: five tools over the live desktop, a hard guard
-on Omarchy's package-owned tree, and a short conventions prompt. No shims, no
-`PATH` edits, no shell or Hyprland rewrites.
+A `dsh` plugin, not an Omarchy desktop installer: five tools over the live
+desktop, a hard guard on Omarchy's package-owned tree, and a short conventions
+prompt. No shims, no `PATH` edits, no shell or Hyprland rewrites.
 
 ## Highlights
 
@@ -19,8 +19,8 @@ on Omarchy's package-owned tree, and a short conventions prompt. No shims, no
   still denies writes to `/usr/share/omarchy`, the tree `omarchy update`
   overwrites, while leaving reads free.
 - **Zero intrusion.** No shims, no `PATH` edits, no `~/.bashrc`, fish,
-  `environment.d`, Hyprland, menu, or default-agent writes. Install is one
-  `dsh plugin` command; uninstall is one more.
+  `environment.d`, Hyprland, menu, or default-agent writes. Install is one npm
+  package and one command; uninstall is one more.
 - **Built for Omarchy's native dsh support, not against it.** The bundle lands
   in the `web` profile that `dsh web` boots, so Omarchy keeps owning the
   launcher, the picker, and the usage panel.
@@ -57,37 +57,55 @@ separate preset to select.
 
 ## Install
 
-You need two things: `dsh` on `PATH`, and the bundle in the `web` profile.
+The npm package is the primary distribution: `dsh-omarchy-agent`.
 
-```sh
-# 1. dsh (skip if Omarchy already provides it)
-mise use -g npm:@deepseek-ai/dsh@latest
+`dsh` must be on `PATH`. The installer installs it with mise when it is missing
+(pass `--no-install-dsh` to fail instead). Once Omarchy's dsh support lands
+([#14455][pr14455] / [#14040][pr14040]), `omarchy default agent dsh` installs it
+through Omarchy too.
 
-# 2a. the bundle from npm
-dsh plugin --profile web add dsh-omarchy-agent
-
-# 2b. or from a checkout, with local edits live
-dsh plugin --profile web add .
-
-# 2c. or as an Omarchy shell plugin, whose service runs the installer once
-omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
-```
-
-The npm CLI + bundled installer is also available:
+### Recommended: npm package
 
 ```sh
 mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
 ```
 
-The installer adds a checkout by its path and an npm-installed copy by package
-name, so the profile keeps its own copy that a package-manager prune cannot
-break. The profile's copy follows the published package; re-running the
-installer (or `dsh plugin --profile web update dsh-omarchy-agent`) refreshes it.
+The installer ensures `dsh` and `pnpm`, then adds the bundle to the `web`
+profile. `--headless` also installs into the one-shot profile, `--profile
+<name>` targets another profile, and `--dry-run` prints the plan first.
+
+With `dsh` and `pnpm` already on `PATH`, the npm package can go straight into
+the profile:
+
+```sh
+dsh plugin --profile web add dsh-omarchy-agent
+```
+
+Plain `npm install -g dsh-omarchy-agent` works when mise is not present.
+
+### From a checkout
+
+```sh
+dsh plugin --profile web add .
+```
+
+Local edits stay live. The installer detects a checkout and adds it by path; an
+npm-installed copy is added by package name, so the profile keeps its own copy
+that a package-manager prune cannot break. Re-running the installer (or `dsh
+plugin --profile web update dsh-omarchy-agent`) refreshes the profile's copy.
+
+### As an Omarchy shell plugin
+
+```sh
+omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
+```
+
+The plugin's service runs the npm installer once, in the background.
 
 The target is the `web` profile because `dsh web` boots it (and Omarchy's
-launcher runs `dsh web`). Add `--headless` to `install.sh` to install into the
-`headless` profile as well, for `dsh --profile headless "run the tests"`.
+launcher runs `dsh web`). Add `--headless` for
+`dsh --profile headless "run the tests"`.
 
 Launch it:
 

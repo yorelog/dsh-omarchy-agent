@@ -4,9 +4,9 @@
 
 **为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 提供 Omarchy 能力。**
 
-一个 `dsh` 插件，不是安装器：5 个直接操作实时桌面的工具、一条对 Omarchy
-包目录的硬性保护规则、一段简短的约定提示词。没有 shim，不改 `PATH`，不重写
-shell 或 Hyprland 配置。
+一个 `dsh` 插件，不是 Omarchy 桌面安装器：5 个直接操作实时桌面的工具、一条对
+Omarchy 包目录的硬性保护规则、一段简短的约定提示词。没有 shim，不改 `PATH`，
+不重写 shell 或 Hyprland 配置。
 
 ## 亮点
 
@@ -18,8 +18,8 @@ shell 或 Hyprland 配置。
   仍然拒绝写入 `/usr/share/omarchy`（`omarchy update` 会覆盖的目录），读取不受
   限制。
 - **零侵入。** 没有 shim，不改 `PATH`，不写 `~/.bashrc`、fish、
-  `environment.d`、Hyprland、菜单或默认 agent 文件。安装一条 `dsh plugin`，
-  卸载一条。
+  `environment.d`、Hyprland、菜单或默认 agent 文件。安装是一个 npm 包加一条
+  命令，卸载一条。
 - **顺应 Omarchy 的原生 dsh 支持，而不是对抗它。** bundle 装进 `dsh web`
   启动的 `web` profile，启动器、选择器、用量面板仍由 Omarchy 负责。
 - **小而可审计。** 5 个工具、1 个 hook、1 段提示词；没有需要跟随 dsh 版本
@@ -53,36 +53,52 @@ preset。
 
 ## 安装
 
-需要两样东西：`PATH` 上的 `dsh`，以及 `web` profile 里的 bundle。
+主要分发方式是 npm 包：`dsh-omarchy-agent`。
 
-```sh
-# 1. dsh（Omarchy 已提供则跳过）
-mise use -g npm:@deepseek-ai/dsh@latest
+`dsh` 必须在 `PATH` 上。缺失时安装器会用 mise 安装（加 `--no-install-dsh`
+则直接报错）。Omarchy 的原生 dsh 支持（[#14455][pr14455] / [#14040][pr14040]）
+合并后，`omarchy default agent dsh` 也会通过 Omarchy 安装它。
 
-# 2a. 从 npm 安装 bundle
-dsh plugin --profile web add dsh-omarchy-agent
-
-# 2b. 或从 checkout 安装，本地改动即时生效
-dsh plugin --profile web add .
-
-# 2c. 或作为 Omarchy shell 插件，由其 service 运行一次安装器
-omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
-```
-
-也可以使用 npm CLI 和自带安装器：
+### 推荐：npm 包
 
 ```sh
 mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
 ```
 
-安装器对 checkout 使用路径，对 npm 安装副本使用包名，因此 profile 持有自己的
-副本，不会被包管理器清理打断。profile 里的副本跟随已发布包；重新运行安装器
-（或 `dsh plugin --profile web update dsh-omarchy-agent`）即可刷新。
+安装器会确保 `dsh` 和 `pnpm` 可用，然后把 bundle 装进 `web` profile。
+`--headless` 同时装入一次性 profile，`--profile <name>` 指定其他 profile，
+`--dry-run` 先打印计划。
+
+`dsh` 和 `pnpm` 已在 `PATH` 上时，也可以直接把 npm 包装进 profile：
+
+```sh
+dsh plugin --profile web add dsh-omarchy-agent
+```
+
+没有 mise 时，普通 `npm install -g dsh-omarchy-agent` 也可以。
+
+### 从 checkout 安装
+
+```sh
+dsh plugin --profile web add .
+```
+
+本地改动即时生效。安装器对 checkout 使用路径，对 npm 安装副本使用包名，因此
+profile 持有自己的副本，不会被包管理器清理打断。重新运行安装器（或
+`dsh plugin --profile web update dsh-omarchy-agent`）即可刷新 profile 里的副本。
+
+### 作为 Omarchy shell 插件
+
+```sh
+omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
+```
+
+插件的 service 会在后台运行一次 npm 安装器。
 
 目标是 `web` profile，因为 `dsh web` 启动它（Omarchy 的启动器也是运行
-`dsh web`）。给 `install.sh` 加 `--headless` 可同时装入 `headless` profile，
-用于 `dsh --profile headless "run the tests"`。
+`dsh web`）。加 `--headless` 可同时装入 `headless` profile，用于
+`dsh --profile headless "run the tests"`。
 
 启动：
 
