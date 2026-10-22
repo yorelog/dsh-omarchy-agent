@@ -41,14 +41,22 @@ Panel {
   readonly property bool serverRunning: unitActive || portOpen
   readonly property bool externalServer: portOpen && !unitActive
 
-  property string themeName: ""
-  property int monitorCount: 0
-  property int workspaceCount: 0
   property int failedUnits: 0
   property string defaultAgent: ""
   property string dshVersion: ""
   property int sessionCount: 0
   property var deepseek: null
+
+  property real load1: 0
+  property int cpuCount: 0
+  property real memUsed: 0
+  property real memTotal: 0
+  property int recentErrors: 0
+  property string lastErrorLine: ""
+  property string recentApps: ""
+  property string projectName: ""
+  property string gitBranch: ""
+  property int gitDirty: 0
 
   property string lastError: ""
   property bool pendingOpen: false
@@ -65,14 +73,16 @@ Panel {
   function refresh() {
     probe(statusProc)
     probe(portProc)
-    probe(themeProc)
-    probe(monitorsProc)
-    probe(workspacesProc)
     probe(unitsProc)
     probe(agentProc)
     probe(usageProc)
     probe(cliProc)
     probe(sessionsProc)
+    probe(loadProc)
+    probe(memProc)
+    probe(errorsProc)
+    probe(appsProc)
+    probe(projectProc)
   }
 
   function probe(process) {
@@ -181,6 +191,43 @@ Panel {
     return record.usageStatusText ? String(record.usageStatusText) : "Ready"
   }
 
+  function loadLabel() {
+    return load1.toFixed(2)
+  }
+
+  function cpuLabel() {
+    return cpuCount > 0 ? cpuCount + " cores" : "—"
+  }
+
+  function memoryPercent() {
+    if (memTotal <= 0) return "—"
+    return Math.round((memUsed / memTotal) * 100) + "%"
+  }
+
+  function memoryLabel() {
+    if (memTotal <= 0) return "—"
+    return (memUsed / 1073741824).toFixed(1) + " / " + (memTotal / 1073741824).toFixed(1) + " GB"
+  }
+
+  function projectValue() {
+    return projectName !== "" ? projectName : "—"
+  }
+
+  function projectDetail() {
+    var parts = []
+    if (gitBranch !== "") parts.push(gitBranch)
+    if (gitDirty > 0) parts.push(gitDirty + " changes")
+    return parts.length > 0 ? parts.join(" · ") : "not a git repository"
+  }
+
+  function appsValue() {
+    return recentApps !== "" ? recentApps : "—"
+  }
+
+  function errorsDetail() {
+    return lastErrorLine !== "" ? lastErrorLine : "no errors in the last hour"
+  }
+
   // Read-only from the shell's point of view apart from the two dsh-web
   // lifecycle calls this panel owns; Omarchy's plugin and agent choices stay
   // outside this target.
@@ -234,7 +281,7 @@ Panel {
     centerOnBar: false
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(380))
-    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(760))
+    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(900))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -406,7 +453,7 @@ Panel {
         }
 
         PanelSectionHeader {
-          text: "OMARCHY"
+          text: "SIGNALS"
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
@@ -417,13 +464,15 @@ Panel {
 
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "THEME"
-            value: root.themeName !== "" ? root.themeName : "—"
+            label: "LOAD"
+            value: root.loadLabel()
+            detail: root.cpuLabel()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "DISPLAYS"
-            value: root.monitorCount > 0 ? String(root.monitorCount) : "—"
+            label: "MEMORY"
+            value: root.memoryPercent()
+            detail: root.memoryLabel()
           }
         }
 
@@ -433,14 +482,28 @@ Panel {
 
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "WORKSPACES"
-            value: root.workspaceCount > 0 ? String(root.workspaceCount) : "—"
+            label: "ERRORS (1H)"
+            value: String(root.recentErrors)
+            detail: root.errorsDetail()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "FAILED UNITS"
             value: String(root.failedUnits)
           }
+        }
+
+        StatCard {
+          width: parent.width
+          label: "RECENT APPS"
+          value: root.appsValue()
+        }
+
+        StatCard {
+          width: parent.width
+          label: "PROJECT"
+          value: root.projectValue()
+          detail: root.projectDetail()
         }
 
         Text {
@@ -572,47 +635,6 @@ Panel {
   }
 
   Process {
-    id: themeProc
-    command: ["omarchy", "theme", "current"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: root.themeName = String(text).trim()
-    }
-  }
-
-  Process {
-    id: monitorsProc
-    command: ["hyprctl", "monitors", "-j"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        try {
-          var list = JSON.parse(String(text))
-          root.monitorCount = Array.isArray(list) ? list.length : 0
-        } catch (error) {
-          root.monitorCount = 0
-        }
-      }
-    }
-  }
-
-  Process {
-    id: workspacesProc
-    command: ["hyprctl", "workspaces", "-j"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        try {
-          var list = JSON.parse(String(text))
-          root.workspaceCount = Array.isArray(list) ? list.length : 0
-        } catch (error) {
-          root.workspaceCount = 0
-        }
-      }
-    }
-  }
-
-  Process {
     id: unitsProc
     command: ["bash", "-c", "systemctl --user --failed --no-legend 2>/dev/null | wc -l"]
     stdout: StdioCollector {
@@ -682,6 +704,101 @@ Panel {
       onStreamFinished: {
         var count = parseInt(String(text).trim(), 10)
         root.sessionCount = isNaN(count) ? 0 : count
+      }
+    }
+  }
+
+  Process {
+    id: loadProc
+    command: ["bash", "-c", "awk '{print $1}' /proc/loadavg; nproc"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var parts = String(text).trim().split("\n")
+        root.load1 = parseFloat(parts[0]) || 0
+        var cores = parseInt(parts[1], 10)
+        root.cpuCount = isNaN(cores) ? 0 : cores
+      }
+    }
+  }
+
+  Process {
+    id: memProc
+    command: [
+      "bash", "-c",
+      "awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{printf \"%d %d\\n\", t*1024, (t-a)*1024}' /proc/meminfo"
+    ]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var parts = String(text).trim().split(/\s+/)
+        root.memTotal = parseFloat(parts[0]) || 0
+        root.memUsed = parseFloat(parts[1]) || 0
+      }
+    }
+  }
+
+  Process {
+    id: errorsProc
+    command: [
+      "bash", "-c",
+      "journalctl --user -p 3 --since \"1 hour ago\" --no-pager -o cat 2>/dev/null | tail -n 200"
+    ]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var lines = String(text).trim().split("\n").filter(function(line) { return line.trim() !== "" })
+        root.recentErrors = lines.length
+        var last = lines.length > 0 ? lines[lines.length - 1].trim() : ""
+        root.lastErrorLine = last.length > 110 ? last.slice(0, 107) + "…" : last
+      }
+    }
+  }
+
+  Process {
+    id: appsProc
+    command: ["bash", "-c", "hyprctl clients -j 2>/dev/null"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        try {
+          var clients = JSON.parse(String(text))
+          if (!Array.isArray(clients)) {
+            root.recentApps = ""
+            return
+          }
+          clients.sort(function(left, right) {
+            return (left.focusHistoryID || 0) - (right.focusHistoryID || 0)
+          })
+          var names = []
+          for (var i = 0; i < clients.length && names.length < 3; i++) {
+            var name = clients[i].class || clients[i].initialClass || clients[i].title || ""
+            name = String(name).trim()
+            if (name !== "" && names.indexOf(name) < 0) names.push(name)
+          }
+          root.recentApps = names.join(" · ")
+        } catch (error) {
+          root.recentApps = ""
+        }
+      }
+    }
+  }
+
+  Process {
+    id: projectProc
+    command: [
+      "bash", "-c",
+      "basename \"$1\"; git -C \"$1\" rev-parse --abbrev-ref HEAD 2>/dev/null; git -C \"$1\" status --porcelain 2>/dev/null | wc -l",
+      "_", root.workDir
+    ]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var parts = String(text).trim().split("\n")
+        root.projectName = (parts[0] || "").trim()
+        root.gitBranch = (parts[1] || "").trim()
+        var dirty = parseInt(parts[2], 10)
+        root.gitDirty = isNaN(dirty) ? 0 : dirty
       }
     }
   }
