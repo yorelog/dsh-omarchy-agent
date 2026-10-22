@@ -113,7 +113,10 @@ export function startPromptBroker(port: number = PROMPT_PORT): PromptBroker {
   })
 
   const ready = new Promise<boolean>((resolve) => {
-    server.once('error', () => resolve(false))
+    server.once('error', (error) => {
+      console.error('[dsh-omarchy-agent] prompt broker failed:', error)
+      resolve(false)
+    })
     server.listen(port, '127.0.0.1', () => {
       closed = false
       const address = server.address()
