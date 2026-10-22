@@ -94,7 +94,7 @@ ensure_dsh() {
     omarchy-mise-default-tools declares npm:@deepseek-ai/dsh; then
     run mise install node npm:@deepseek-ai/dsh
   else
-    run env MISE_PRERELEASES=true mise use -g npm:@deepseek-ai/dsh@latest
+    run env MISE_PRERELEASES=true MISE_MINIMUM_RELEASE_AGE=0 mise use -g npm:@deepseek-ai/dsh@latest
   fi
   run mise reshim || true
   if $DRY_RUN; then return 0; fi
@@ -117,9 +117,19 @@ ensure_pnpm() {
 
 # A checkout tracks local edits; an npm-installed copy is added by name so the
 # profile owns its own copy and a package-manager prune cannot break the link.
+# A checkout tracks local edits; an npm-installed copy pins the version it is
+# running, so pnpm's minimumReleaseAge cannot fall back to an older release.
 bundle_spec() {
   if [[ -d "$REPO_DIR/.git" ]]; then
     printf '%s\n' "$REPO_DIR"
+    return
+  fi
+  local version=""
+  if [[ -f "$REPO_DIR/package.json" ]] && command -v node >/dev/null 2>&1; then
+    version="$(node -p 'require(process.argv[1]).version' "$REPO_DIR/package.json" 2>/dev/null || true)"
+  fi
+  if [[ -n $version ]]; then
+    printf '%s@%s\n' "$BUNDLE" "$version"
   else
     printf '%s\n' "$BUNDLE"
   fi

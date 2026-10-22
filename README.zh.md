@@ -35,9 +35,11 @@ coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 5 个�
 **主要方式：npm**
 
 ```sh
-mise use -g npm:dsh-omarchy-agent
+mise use -g npm:dsh-omarchy-agent@0.3.5
 dsh-omarchy-agent-install
 ```
+
+请固定版本：mise 默认会隐藏 24 小时内发布的 npm 版本，只写包名可能装到旧版。
 
 这会把插件装进 `dsh web` 使用的 `web` profile。加 `--headless` 也装一次性
 profile；加 `--dry-run` 先看计划。
@@ -45,7 +47,7 @@ profile；加 `--dry-run` 先看计划。
 已经有 `dsh` 和 `pnpm`？可以跳过安装器：
 
 ```sh
-dsh plugin --profile web add dsh-omarchy-agent
+dsh plugin --profile web add dsh-omarchy-agent@0.3.5
 ```
 
 **想要顶栏面板？** 再装 Omarchy 插件：
