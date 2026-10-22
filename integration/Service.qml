@@ -34,7 +34,7 @@ Item {
   function notify(exitCode) {
     notifyProcess.command = exitCode === 0
       ? ["omarchy-notification-send", "-u", "normal", "-g", "󰚩", "DeepSeek Harness ready",
-         "Omarchy capabilities installed. Launch it with SUPER + SHIFT + CTRL + A, or run omarchy agent."]
+         "Omarchy capabilities installed. Launch dsh with: dsh web."]
       : ["omarchy-notification-send", "-u", "critical", "-g", "󰚩", "DeepSeek Harness setup failed",
          "See " + root.stateDir + "/install.log, then run " + root.pluginDir + "/install.sh"]
     notifyProcess.running = true

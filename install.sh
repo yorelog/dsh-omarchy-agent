@@ -137,6 +137,14 @@ install_bundle() {
   run dsh plugin --profile "$profile" add "$spec"
 }
 
+# The packaged omarchy-default-agent grows a dsh case when Omarchy's native
+# support lands; until then its usage line is the reliable signal.
+supports_dsh_default_agent() {
+  local bin
+  bin="$(command -v omarchy-default-agent 2>/dev/null)" || return 1
+  grep -qw dsh "$bin" 2>/dev/null
+}
+
 main() {
   say "dsh-omarchy-agent installer"
   say "repository: $REPO_DIR"
@@ -148,9 +156,13 @@ main() {
   $WANT_HEADLESS && install_bundle "$HEADLESS_PROFILE"
 
   say ""
-  say "Done. Omarchy launches DeepSeek Harness with 'dsh web'."
-  say "Select it as the default agent:  omarchy default agent dsh"
-  say "Or launch it now:                omarchy agent"
+  say "Done. Launch DeepSeek Harness with: dsh web"
+  if supports_dsh_default_agent; then
+    say "Select it as the default agent:  omarchy default agent dsh"
+  else
+    say "This Omarchy does not list dsh yet (#14455/#14040); once it does:"
+    say "    omarchy default agent dsh"
+  fi
 }
 
 main

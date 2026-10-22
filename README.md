@@ -1,12 +1,41 @@
 # dsh-omarchy-agent
 
+English | [中文](README.zh.md)
+
 **Omarchy capabilities for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).**
 
-This is a `dsh` plugin, not an Omarchy installer. Omarchy already installs,
-launches (`dsh web`), lists, and counts `dsh` ([#14455][pr14455], [#14040][pr14040]).
-What those do not provide is Omarchy-aware tooling inside the agent, and that is
-all this bundle does: five tools over the live desktop, a package-ownership
-guard, and a short conventions section in the system prompt.
+A `dsh` plugin, not an installer: five tools over the live desktop, a hard guard
+on Omarchy's package-owned tree, and a short conventions prompt. No shims, no
+`PATH` edits, no shell or Hyprland rewrites.
+
+## Highlights
+
+- **The agent looks things up instead of guessing.** `omarchy_catalog` searches
+  `omarchy commands --json`, so it discovers real routes, arguments, and sudo
+  requirements. `omarchy_status` and `omarchy_hypr` return live JSON from
+  `omarchy` and `hyprctl`.
+- **One safety rule that survives full access.** Omarchy launches agents with
+  `DSH_PERMISSION_MODE=danger-full-access`, where no sandbox is left. The guard
+  still denies writes to `/usr/share/omarchy`, the tree `omarchy update`
+  overwrites, while leaving reads free.
+- **Zero intrusion.** No shims, no `PATH` edits, no `~/.bashrc`, fish,
+  `environment.d`, Hyprland, menu, or default-agent writes. Install is one
+  `dsh plugin` command; uninstall is one more.
+- **Built for Omarchy's native dsh support, not against it.** The bundle lands
+  in the `web` profile that `dsh web` boots, so Omarchy keeps owning the
+  launcher, the picker, and the usage panel.
+- **Small and auditable.** Five tools, one hook, one prompt section. There is no
+  preset snapshot to resync on every dsh release; `lib/` is committed and CI
+  checks it against `src/`.
+
+## Status: Omarchy's native dsh support is in review
+
+[#14455][pr14455] adds dsh as a coding agent, and [#14040][pr14040] consolidates
+it with the rest of the agent roster. On a released Omarchy without either,
+dsh is not in the agent list yet: install it with mise and launch `dsh web`.
+Once they land, Omarchy installs the lazy mise tool, adds the menu row, launches
+`dsh web`, and counts dsh in the agents panel. Either way, the tools below come
+from this bundle.
 
 [pr14455]: https://github.com/omacom/omarchy/pull/14455
 [pr14040]: https://github.com/omacom/omarchy/pull/14040
@@ -19,7 +48,7 @@ guard, and a short conventions section in the system prompt.
 | `omarchy_catalog` | Tool | Searches `omarchy commands --json` for routes, usage, and sudo requirements. |
 | `omarchy_theme` | Tool | Lists themes, reads the current theme, or applies one. |
 | `omarchy_hypr` | Tool | Reads live Hyprland state as JSON or reloads the configuration. |
-| `omarchy_diagnose` | Tool | Recent crashes and failed system/user units. |
+| `omarchy_diagnose` | Tool | Recent crashes from `coredumpctl` and failed system/user units. |
 | Guard | `tools/pre-execute` | Denies writes under `/usr/share/omarchy`; reads stay allowed. |
 | Conventions | System prompt | Read state before changing it, prefer Omarchy tooling, keep user changes under `~/.config`. |
 
@@ -28,50 +57,43 @@ separate preset to select.
 
 ## Install
 
-First make sure `dsh` is on `PATH`. On Omarchy, picking it as the default agent
-installs it:
+You need two things: `dsh` on `PATH`, and the bundle in the `web` profile.
 
 ```sh
-omarchy default agent dsh
-```
-
-Standalone, install it with mise:
-
-```sh
+# 1. dsh (skip if Omarchy already provides it)
 mise use -g npm:@deepseek-ai/dsh@latest
+
+# 2a. the bundle from npm
+dsh plugin --profile web add dsh-omarchy-agent
+
+# 2b. or from a checkout, with local edits live
+dsh plugin --profile web add .
+
+# 2c. or as an Omarchy shell plugin, whose service runs the installer once
+omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
 ```
 
-Then choose one:
+The npm CLI + bundled installer is also available:
 
 ```sh
-# Omarchy screen plugin: the service runs the installer once, in the background
-omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
-
-# npm
 mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
-
-# Manual: the only step that matters
-#   from a checkout: dsh plugin --profile web add .
-#   from npm:        dsh plugin --profile web add dsh-omarchy-agent
-dsh plugin --profile web add github:yorelog/dsh-omarchy-agent
 ```
 
-The installer adds a checkout by its path, so local edits are live, and an
-npm-installed copy by package name, so the profile keeps its own copy that a
-package-manager prune cannot break. The profile's copy follows the published
-package; re-running the installer (or `dsh plugin --profile web update
-dsh-omarchy-agent`) refreshes it.
+The installer adds a checkout by its path and an npm-installed copy by package
+name, so the profile keeps its own copy that a package-manager prune cannot
+break. The profile's copy follows the published package; re-running the
+installer (or `dsh plugin --profile web update dsh-omarchy-agent`) refreshes it.
 
-The target is the `web` profile, because `dsh web` is what Omarchy's launcher
-runs. Add `--headless` to `install.sh` to install into the `headless` profile as
-well, for `dsh --profile headless "run the tests"`.
+The target is the `web` profile because `dsh web` boots it (and Omarchy's
+launcher runs `dsh web`). Add `--headless` to `install.sh` to install into the
+`headless` profile as well, for `dsh --profile headless "run the tests"`.
 
-Launch it the normal Omarchy way:
+Launch it:
 
 ```sh
-omarchy agent                    # opens the dsh browser UI
-# or SUPER + SHIFT + CTRL + A
+dsh web         # today
+omarchy agent   # once Omarchy lists dsh; SUPER + SHIFT + CTRL + A does the same
 ```
 
 A running profile keeps its bundle set from when it started: restart `dsh web`
@@ -124,6 +146,10 @@ Override the bundle row in the profile's `cordis.patch.yml`
 | **Omarchy tools, guard, conventions** | **this bundle** |
 | **Adding the bundle to the `web` profile** | **this bundle** |
 
+The first four rows are Omarchy's once [#14455][pr14455] / [#14040][pr14040]
+merge; on a released Omarchy without them, install dsh with mise and launch
+`dsh web`. The last two rows are always this bundle.
+
 Nothing here edits `/usr/share/omarchy`, `~/.bashrc`, fish config,
 `environment.d`, Hyprland bindings, the Omarchy menu, or the default-agent file.
 Older versions of this project did; `uninstall.sh` removes those leftovers.
@@ -144,15 +170,17 @@ not have to guess routes.
 
 ## Troubleshooting
 
-- **`dsh` not found** — install it with `omarchy default agent dsh` or
-  `mise use -g npm:@deepseek-ai/dsh@latest`, then open a new shell.
+- **`dsh` not found** — install it with `mise use -g npm:@deepseek-ai/dsh@latest`
+  (or, once Omarchy lists dsh, `omarchy default agent dsh`), then open a new
+  shell.
 - **The tools are missing in a session** — confirm the bundle is installed with
   `dsh --profile web --dump-config | grep dsh-omarchy-agent`, then restart the
   profile (`dsh plugin` changes apply at the next start).
 - **Port 3080 already in use** — a `dsh web` profile is already running. Open
   its URL instead of launching a second one.
-- **`omarchy agent` does not open dsh** — the default agent is not set:
-  `omarchy default agent dsh`.
+- **`omarchy agent` does not open dsh** — a released Omarchy without
+  [#14455][pr14455] / [#14040][pr14040] does not list dsh yet; use `dsh web`.
+  Once it does, select it with `omarchy default agent dsh`.
 - **`dsh plugin` says pnpm was not found** — `mise use -g pnpm@latest`.
 - **`mise use -g npm:dsh-omarchy-agent` reports "no versions found"** — mise
   hides npm releases newer than 24 hours (`minimum_release_age`). Pin the
@@ -211,8 +239,9 @@ the conventions text are model-visible and are logged by the session.
 
 - **Developer-preview dependency** — dsh has no stable release yet (every
   published version is an alpha or rc). The bundle's peer ranges are unversioned
-  and optional, and the build-time dev dependencies are pinned to the release in
-  use (`0.2.0-rc.2`). Keep them in sync when dsh breaks a plugin API.
+  and optional, and the build-time dev dependencies are pinned to the release
+  the bundle is built against (`0.2.0-rc.2`). Bump them together when dsh breaks
+  a plugin API.
 - **No terminal UI** — dsh ships none. `dsh web` is the interactive surface;
   `dsh --profile headless "task"` is one-shot and exits after printing the
   answer.
