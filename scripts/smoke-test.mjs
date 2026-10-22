@@ -17,20 +17,26 @@ const base = {
 
 function harness(config) {
   const tools = new Map()
+  const disposers = []
   let section
   let guard
   const ctx = {
     tools: { register: (definition) => (tools.set(definition.name, definition), () => {}) },
     systemPrompt: { section: (value) => ((section = value), () => {}) },
+    effect: (execute) => {
+      const dispose = execute()
+      if (typeof dispose === 'function') disposers.push(dispose)
+      return () => {}
+    },
     on: (event, handler) => {
       if (event === 'tools/pre-execute') guard = handler
     },
   }
   apply(ctx, config)
-  return { tools, section, guard }
+  return { tools, section, guard, disposers }
 }
 
-const { tools, section, guard } = harness(base)
+const { tools, section, guard, disposers } = harness(base)
 const allow = async () => ({ kind: 'allow' })
 const decide = (exec) => guard(exec, allow)
 const bash = (command) => ({ name: 'bash', arguments: { command } })
@@ -113,5 +119,7 @@ assert.equal((await gatedDecide(bash('reboot'))).kind, 'ask')
 assert.equal((await gatedDecide(bash('systemctl --failed'))).kind, 'allow')
 assert.equal((await gatedDecide(bash('ls -la'))).kind, 'allow')
 assert.equal((await gatedDecide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
+
+for (const dispose of [...disposers, ...gated.disposers]) dispose()
 
 console.log('smoke test passed: 10 tools, no service, 1 section, guard decisions correct')

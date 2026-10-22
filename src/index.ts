@@ -27,12 +27,8 @@ export const inject = ['tools', 'systemPrompt']
  * @param config - configuration validated by {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
-  // The broker is a live-host concern; small test harnesses have no effect
-  // scope, and binding a real loopback port there would also keep them open.
-  if (typeof ctx.effect === 'function') {
-    const broker = startPromptBroker()
-    ctx.effect(() => () => broker.close(), 'omarchy: prompt broker')
-  }
+  const broker = startPromptBroker()
+  ctx.effect(() => () => broker.close(), 'omarchy: prompt broker')
   applyTools(ctx, config)
   applyGuard(ctx, config)
   applyPrompt(ctx, config)
