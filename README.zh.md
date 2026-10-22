@@ -4,11 +4,10 @@
 
 [English](README.md) | 中文
 
-让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）
-在你自己的 Omarchy 桌面上干活。
+**让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 真正会用你的 Omarchy 桌面。**
 
-这个插件给 agent 5 个操作桌面的工具，阻止它改 Omarchy 自己的文件，并在顶栏加一个
-面板：启动 `dsh web`、打开 Web UI 或 CLI、查看桌面状态。
+coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 5 个操作实时桌面的工具、
+一条保护 Omarchy 自身文件的守卫，以及一个在顶栏运行它的面板。
 
 它是 `dsh` 插件，不是安装器。安装、启动、选择 `dsh` 正由 Omarchy 接管
 （[#14455][pr14455]、[#14040][pr14040]）；这个插件只补上 agent 需要的 Omarchy
@@ -19,13 +18,15 @@
 
 ## 你会得到
 
-- **5 个工具** — 机器状态、命令目录、主题、Hyprland 状态、崩溃/单元诊断。
-- **一个守卫** — agent 不能写 `/usr/share/omarchy`。
-- **一段提示词** — 先读再改，优先用 `omarchy` 命令，改动留在 `~/.config`。
-- **一个顶栏面板** — 启动/停止 `dsh web`，打开 Web UI 或 CLI，查看 server、
-  主题、显示器、工作区、失败单元和 DeepSeek 用量。
-- **dsh web 里更好看的卡片** — 工具结果显示成紧凑的 Omarchy 卡片，而不是原始
-  JSON。
+- **它看得见你的桌面。** 主题、显示器、工作区、活动窗口、失败单元——实时读取，
+  不是猜的。
+- **它找得到真正的命令。** 不编 Omarchy 路由，而是搜索
+  `omarchy commands --json`，用真实存在的命令。
+- **它弄不坏 Omarchy。** `/usr/share/omarchy` 对 agent 只读；你的改动留在
+  `~/.config`。
+- **一个图标控制全部。** 在顶栏启动/停止 `dsh web`、打开 Web UI 或 CLI，查看
+  server、主题、显示器、DeepSeek 用量。
+- **卡片，不是 JSON。** 工具结果在 dsh web 会话里显示成小的 Omarchy 卡片。
 
 ## 安装
 

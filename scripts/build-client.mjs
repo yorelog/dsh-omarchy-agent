@@ -2,7 +2,7 @@
 // expects: window.__ModuleLoader__.load({ id, factory }), with React resolved
 // through the loader's baseline module table instead of a bundled copy.
 import { build } from 'esbuild'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 const root = new URL('../', import.meta.url)
@@ -38,4 +38,6 @@ const wrapped = [
 
 await mkdir(new URL('lib/', root), { recursive: true })
 await writeFile(new URL('lib/client.js', root), wrapped)
+// tsc also emits an ESM copy of the browser source; the loader uses lib/client.js.
+await rm(new URL('lib/client/index.js', root), { force: true })
 console.log(`built lib/client.js (${Buffer.byteLength(wrapped)} bytes)`)

@@ -4,12 +4,11 @@
 
 English | [中文](README.zh.md)
 
-Let [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`)
-work on your Omarchy desktop.
+**Teach [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) to use your Omarchy desktop.**
 
-This plugin gives the agent five tools for the live desktop, stops it from
-changing files Omarchy owns, and adds a top-bar panel for starting `dsh web`,
-opening the web UI or CLI, and reading desktop state.
+Coding agents are good at code and blind to the desktop around it. This plugin
+gives `dsh` five tools for the live desktop, a guard that keeps Omarchy's own
+files safe, and a top-bar panel for running it.
 
 It is a `dsh` plugin, not an installer. Omarchy is taking over installing,
 launching, and selecting `dsh` ([#14455][pr14455], [#14040][pr14040]); this
@@ -20,15 +19,17 @@ plugin adds the Omarchy knowledge the agent needs.
 
 ## What you get
 
-- **Five tools** — machine status, a command catalog, themes, Hyprland state,
-  and crash/unit diagnostics.
-- **A guard** — the agent cannot write to `/usr/share/omarchy`.
-- **A prompt** — read before changing, prefer `omarchy` commands, keep your
-  changes in `~/.config`.
-- **A bar panel** — start/stop `dsh web`, open the web UI or CLI, and see the
-  server, theme, displays, workspaces, failed units, and DeepSeek usage.
-- **Pretty cards in dsh web** — tool results show as compact Omarchy cards
-  instead of raw JSON.
+- **It sees what you see.** Theme, monitors, workspaces, the active window, and
+  failed units — live, not guessed.
+- **It finds the real command.** Instead of inventing an Omarchy route, it
+  searches `omarchy commands --json` and uses the one that exists.
+- **It cannot break Omarchy.** `/usr/share/omarchy` is read-only to the agent;
+  your changes stay in `~/.config`.
+- **One icon controls the rest.** Start or stop `dsh web`, open the web UI or
+  CLI, and watch the server, theme, displays, and DeepSeek usage from the top
+  bar.
+- **Cards instead of JSON.** Tool results render as small Omarchy cards inside a
+  dsh web session.
 
 ## Install
 
