@@ -332,7 +332,7 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "DEFAULT AGENT"
-            value: root.defaultAgent !== "" ? root.defaultAgent : "—"
+            value: root.defaultAgent !== "" ? root.defaultAgent : "Not selected"
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
@@ -364,6 +364,7 @@ Panel {
         }
 
         Row {
+          visible: root.deepseek !== null
           width: parent.width
           spacing: Style.space(8)
 
@@ -380,6 +381,7 @@ Panel {
         }
 
         Row {
+          visible: root.deepseek !== null
           width: parent.width
           spacing: Style.space(8)
 
@@ -395,15 +397,12 @@ Panel {
           }
         }
 
-        Text {
+        StatCard {
           visible: root.deepseek === null
           width: parent.width
-          text: "DeepSeek usage fills in once Omarchy's agents collector writes a record."
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          textFormat: Text.PlainText
-          wrapMode: Text.WordWrap
+          label: "USAGE"
+          value: "Waiting for collector"
+          detail: "Omarchy's agents panel fills this in."
         }
 
         PanelSectionHeader {
