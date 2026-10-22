@@ -29,7 +29,7 @@ coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 操作
 - **它弄不坏 Omarchy。** `/usr/share/omarchy` 对 agent 只读；你的改动留在
   `~/.config`。
 - **一个图标控制全部。** 在顶栏启动/停止 `dsh web`、打开 Web UI 或 CLI，查看
-  server、主题、显示器、失败单元和当前默认 agent。
+  server、主题、显示器、失败单元和当前默认 agent。面板会开在图标下方。
 - **卡片，不是 JSON。** 工具结果在 dsh web 会话里显示成小的 Omarchy 卡片。
 
 ## 边界
@@ -218,6 +218,13 @@ agent 插件在 `src/`；web 卡片在 `src/client/`。`lib/` 已提交，CI 会
   _Settings → General → Upload Session Log_ 里关闭。
 - 反馈遥测是另一条通道：`DSH_TELEMETRY_MODE=DISABLED` 关闭 OTel 反馈导出，
   `DSH_TELEMETRY_DISABLED` 让整个进程退出遥测。
+
+## 版本说明
+
+- **0.4.1** — 面板改为开在顶栏图标下方，不再按整条 bar 居中。
+- **0.4.0** — 新增只读的 `omarchy_source`、`omarchy_agent`、`omarchy_plugin`、
+  `omarchy_shell`；明确 default agent 边界；移除加载即安装的 service；用量交给
+  Omarchy agents 面板；为 Qt 6.12 限定 palette 颜色，并把图标适配 12px 目标。
 
 ## 许可证
 

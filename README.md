@@ -32,7 +32,7 @@ plugin adds the Omarchy knowledge the agent needs.
   your changes stay in `~/.config`.
 - **One icon controls the rest.** Start or stop `dsh web`, open the web UI or
   CLI, and watch the server, theme, displays, failed units, and current default
-  agent from the top bar.
+  agent from the top bar. The panel opens under its icon.
 - **Cards instead of JSON.** Tool results render as small Omarchy cards inside a
   dsh web session.
 
@@ -235,6 +235,15 @@ Releases run in GitHub Actions; see
 - Feedback telemetry is a separate channel: `DSH_TELEMETRY_MODE=DISABLED`
   disables the OTel feedback export, while `DSH_TELEMETRY_DISABLED` opts the
   process out of telemetry entirely.
+
+## Release notes
+
+- **0.4.1** — The panel opens under its bar icon instead of the center of the bar.
+- **0.4.0** — Added read-only `omarchy_source`, `omarchy_agent`,
+  `omarchy_plugin`, and `omarchy_shell`; stated the default-agent boundary;
+  removed the install-on-load service; delegated usage to the Omarchy agents
+  panel; qualified palette colors for Qt 6.12 and fitted the mark to the 12px
+  bar target.
 
 ## License
 
