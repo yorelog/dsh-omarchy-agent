@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dsh-omarchy-agent",
   "name": "DeepSeek Harness Agent",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "yorelog",
   "license": "MIT",
   "description": "Adds Omarchy capabilities to DeepSeek Harness: read-only state tools, a command catalog, theme and Hyprland control, diagnostics, and a package-ownership guard. Installs the bundle into the dsh `web` profile that Omarchy's launcher runs.",
