@@ -125,7 +125,6 @@ Panel {
       var text = pendingPrompt
       pendingPrompt = ""
       deliverPrompt(text)
-      return
     }
     if (!openProc.running) openProc.running = true
     close()
@@ -307,14 +306,12 @@ Panel {
   function deliverPrompt(text) {
     if (text === "" || promptProc.running) return
     var clean = String(text).trim()
-    var url = "http://127.0.0.1:" + port + "/#dsh-prompt=" + encodeURIComponent(clean)
     promptProc.command = [
       "bash", "-c",
-      "printf '%s' \"$1\" | wl-copy 2>/dev/null || true; exec omarchy-launch-webapp \"$2\"",
-      "_", clean, url
+      "printf '%s' \"$1\" | wl-copy 2>/dev/null || true; printf '%s' \"$1\" | curl -sS --max-time 2 -X POST -H 'content-type: text/plain' --data-binary @- http://127.0.0.1:3081/prompt >/dev/null 2>&1 || true",
+      "_", clean
     ]
     promptProc.running = true
-    close()
   }
 
   function askCard(id) {
@@ -322,11 +319,10 @@ Panel {
     if (text === "") return false
     if (serverRunning) {
       deliverPrompt(text)
-      return true
+    } else {
+      pendingPrompt = text
     }
-    pendingPrompt = text
-    pendingOpen = true
-    startServer()
+    openWeb()
     return true
   }
 
@@ -1046,6 +1042,7 @@ Panel {
         root.probe(portProc)
       } else {
         root.pendingOpen = false
+        root.pendingPrompt = ""
         root.lastError = "Could not start dsh web (systemd-run exited " + exitCode + ")"
       }
     }

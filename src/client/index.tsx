@@ -53,39 +53,42 @@ export function apply(ctx: Context): void {
   installPromptBridge()
 }
 
-const PROMPT_PARAM = 'dsh-prompt'
-const PROMPT_HASH = '#dsh-prompt='
+const PROMPT_ORIGIN = 'http://127.0.0.1:3081'
 
 /**
- * The bar panel opens dsh web with ?dsh-prompt=... after a card click. Put that
- * text into the composer, then drop the parameter so an edit or reload never
- * re-inserts it. This only fills the input; it never sends.
+ * The bar panel POSTs a card prompt to the host broker; this page polls it and
+ * inserts the text into the composer. Nothing is sent. The broker is loopback
+ * only, and each prompt is acknowledged after it lands so it is inserted once.
  */
 function installPromptBridge(): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
-  const url = new URL(window.location.href)
-  let prompt = url.searchParams.get(PROMPT_PARAM)
-  if (url.hash.startsWith(PROMPT_HASH)) {
+  let lastId = 0
+  let polling = false
+  const poll = async (): Promise<void> => {
+    if (polling) return
+    polling = true
     try {
-      prompt = decodeURIComponent(url.hash.slice(PROMPT_HASH.length))
+      const response = await fetch(`${PROMPT_ORIGIN}/prompt?after=${lastId}`, { cache: 'no-store' })
+      if (!response.ok) return
+      const data = (await response.json()) as { id?: unknown; text?: unknown }
+      const id = typeof data.id === 'number' ? data.id : 0
+      const text = typeof data.text === 'string' ? data.text : null
+      if (text !== null && text.trim() !== '') {
+        if (insertComposerText(text)) {
+          lastId = id
+          await fetch(`${PROMPT_ORIGIN}/ack?id=${id}`, { cache: 'no-store' })
+        }
+      } else if (id > lastId) {
+        lastId = id
+      }
     } catch {
-      prompt = null
+      // The broker only exists while the host plugin is loaded; a miss is fine.
+    } finally {
+      polling = false
     }
-    url.hash = ''
   }
-  if (prompt === null || prompt.trim() === '') return
-  url.searchParams.delete(PROMPT_PARAM)
-  const cleanUrl = url.pathname + (url.search === '' ? '' : url.search) + url.hash
-  let attempts = 0
-  const timer = window.setInterval(() => {
-    attempts += 1
-    if (insertComposerText(prompt)) {
-      window.clearInterval(timer)
-      window.history.replaceState(null, '', cleanUrl)
-    } else if (attempts >= 40) {
-      window.clearInterval(timer)
-    }
-  }, 250)
+  void poll()
+  window.setInterval(() => void poll(), 1000)
 }
 
 /**
