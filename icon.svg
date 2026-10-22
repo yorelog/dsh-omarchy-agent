@@ -1,5 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Omarchy Agent">
-  <rect width="64" height="64" rx="14" fill="#1b1f23"/>
-  <path d="M16 46 32 16l16 30" fill="none" stroke="#9ece6a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M23 40h18" fill="none" stroke="#7aa2f7" stroke-width="5" stroke-linecap="round"/>
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dsh-omarchy-agent">
+  <defs>
+    <linearGradient id="dsh-omarchy-ring" x1="6" y1="28" x2="30" y2="8" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#41E1AC"/>
+      <stop offset="0.45" stop-color="#5AA7FF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="dsh-omarchy-caret" x1="21" y1="13" x2="28" y2="23" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB86C"/>
+      <stop offset="1" stop-color="#FF79C6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="18" cy="18" r="10.5" stroke="url(#dsh-omarchy-ring)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="49.48 16.49" transform="rotate(45 18 18)"/>
+  <path d="M22.2 13.8L26.8 18L22.2 22.2" stroke="url(#dsh-omarchy-caret)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
