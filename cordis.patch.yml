@@ -11,6 +11,7 @@
 #     config:
 #       protectedPath: /usr/share/omarchy
 #       commandTimeoutMs: 30000
+#       privilegedTokens: [sudo, pacman]   # empty (the default) gates nothing
 - insert:
     - id: omarchy-agent
       name: 'dsh-omarchy-agent'

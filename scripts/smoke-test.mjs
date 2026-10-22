@@ -3,24 +3,32 @@
 import assert from 'node:assert/strict'
 import { apply } from '../lib/index.js'
 
-const tools = new Map()
-let section
-let guard
-
-const ctx = {
-  tools: { register: (definition) => (tools.set(definition.name, definition), () => {}) },
-  systemPrompt: { section: (value) => ((section = value), () => {}) },
-  on: (event, handler) => {
-    if (event === 'tools/pre-execute') guard = handler
-  },
-}
-
-apply(ctx, {
+const base = {
   omarchyBin: 'omarchy',
   protectedPath: '/usr/share/omarchy',
-  privilegedTokens: ['sudo', 'pkexec', 'pacman', 'yay', 'paru', 'makepkg'],
+  privilegedTokens: [],
   commandTimeoutMs: 15000,
-})
+}
+
+function harness(config) {
+  const tools = new Map()
+  let section
+  let guard
+  const ctx = {
+    tools: { register: (definition) => (tools.set(definition.name, definition), () => {}) },
+    systemPrompt: { section: (value) => ((section = value), () => {}) },
+    on: (event, handler) => {
+      if (event === 'tools/pre-execute') guard = handler
+    },
+  }
+  apply(ctx, config)
+  return { tools, section, guard }
+}
+
+const { tools, section, guard } = harness(base)
+const allow = async () => ({ kind: 'allow' })
+const decide = (exec) => guard(exec, allow)
+const bash = (command) => ({ name: 'bash', arguments: { command } })
 
 assert.deepEqual(
   [...tools.keys()],
@@ -30,11 +38,9 @@ assert.deepEqual(
 assert.equal(section?.name, 'dsh-omarchy-agent:conventions', 'expected the conventions section')
 assert.equal(typeof guard, 'function', 'expected the pre-execute guard')
 
-const allow = async () => ({ kind: 'allow' })
-const decide = (exec) => guard(exec, allow)
-const bash = (command) => ({ name: 'bash', arguments: { command } })
-
+// The package-owned tree is never a write target, in every mode.
 assert.equal((await decide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
+assert.equal((await decide({ name: 'edit', arguments: { file_path: '/usr//share/omarchy/x' } })).kind, 'deny')
 assert.equal((await decide(bash('rm -rf /usr/share/omarchy/themes'))).kind, 'deny')
 assert.equal((await decide(bash('echo x > /usr/share/omarchy/x'))).kind, 'deny')
 assert.equal((await decide(bash('echo x >> /usr/share/omarchy/x'))).kind, 'deny')
@@ -50,9 +56,24 @@ assert.equal((await decide(bash('grep -rn foo /usr/share/omarchy/default 2>&1 | 
 assert.equal((await decide(bash('printf "a > b"; ls /usr/share/omarchy/themes'))).kind, 'allow')
 assert.equal((await decide(bash('echo x > /tmp/out; cat /usr/share/omarchy/x'))).kind, 'allow')
 
-assert.equal((await decide(bash('sudo pacman -Syu'))).kind, 'ask')
-assert.equal((await decide(bash('systemctl restart sshd'))).kind, 'ask')
-assert.equal((await decide(bash('systemctl --failed'))).kind, 'allow')
-assert.equal((await decide(bash('ls -la'))).kind, 'allow')
+// Gating is opt-in. Omarchy launches dsh with full access, so the default
+// bundle must not turn privileged commands into a denial.
+assert.equal((await decide(bash('sudo pacman -Syu'))).kind, 'allow')
+assert.equal((await decide(bash('omarchy update'))).kind, 'allow')
+assert.equal((await decide(bash('systemctl restart sshd'))).kind, 'allow')
+assert.equal((await decide(bash('reboot'))).kind, 'allow')
+
+// Opting in restores the approval gate for the listed tokens and the built-in
+// privileged/system-mutating/power patterns.
+const gated = harness({ ...base, privilegedTokens: ['sudo'] })
+const gatedDecide = (exec) => gated.guard(exec, allow)
+assert.equal((await gatedDecide(bash('sudo pacman -Syu'))).kind, 'ask')
+assert.equal((await gatedDecide(bash('pacman -Syu'))).kind, 'ask')
+assert.equal((await gatedDecide(bash('omarchy update'))).kind, 'ask')
+assert.equal((await gatedDecide(bash('systemctl restart sshd'))).kind, 'ask')
+assert.equal((await gatedDecide(bash('reboot'))).kind, 'ask')
+assert.equal((await gatedDecide(bash('systemctl --failed'))).kind, 'allow')
+assert.equal((await gatedDecide(bash('ls -la'))).kind, 'allow')
+assert.equal((await gatedDecide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')
 
 console.log('smoke test passed: 5 tools, 1 section, guard decisions correct')

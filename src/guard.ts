@@ -145,9 +145,12 @@ function stringArg(args: unknown, keys: readonly string[]): string {
 /**
  * Register the Omarchy safety gate on the tool pre-execute waterfall.
  *
- * The gate denies mutations of the package-owned Omarchy tree and routes
- * privileged or system-mutating shell commands through the approval service.
- * It never rewrites a call; it only allows, denies, or asks.
+ * The gate always denies mutations of the package-owned Omarchy tree; in
+ * `danger-full-access` there is no sandbox left to catch that write. It routes
+ * privileged or system-mutating shell commands through the approval service
+ * only when `privilegedTokens` is non-empty, because Omarchy launches its
+ * default agents with full access and an `ask` without an approval service
+ * degrades to deny. It never rewrites a call; it only allows, denies, or asks.
  * @param ctx - plugin context with `tools` injected.
  * @param config - resolved plugin configuration.
  */
@@ -181,6 +184,12 @@ export function applyGuard(ctx: Context, config: Config): void {
         }
       }
     }
+
+    // Privilege gating is opt-in. Omarchy starts its default agents with full
+    // access, so an `ask` here would degrade to deny and make dsh less capable
+    // than the other agents. An empty list keeps only the package-ownership
+    // denial above, which no sandbox in full-access mode replaces.
+    if (config.privilegedTokens.length === 0) return next()
 
     const privilegedToken = config.privilegedTokens.find((token) =>
       new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(command),

@@ -1,7 +1,7 @@
 {
   "name": "dsh-omarchy-agent",
-  "version": "0.1.4",
-  "description": "General-purpose Omarchy (Arch Linux + Hyprland) agent capabilities for DeepSeek Harness.",
+  "version": "0.2.0",
+  "description": "Omarchy (Arch Linux + Hyprland) capabilities for DeepSeek Harness: state tools, a command catalog, theme and Hyprland control, diagnostics, and a package-ownership guard.",
   "type": "module",
   "license": "MIT",
   "author": "yorelog",
@@ -12,18 +12,14 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./package.json": "./package.json",
-    "./locale/*.json": "./locale/*.json"
+    "./package.json": "./package.json"
   },
   "files": [
     "lib/**/*.js",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
-    "presets/*.patch.yml",
-    "locale/*.json",
     "manifest.json",
     "integration/**",
-    "assets/**",
     "scripts/**",
     "install.sh",
     "uninstall.sh",
@@ -34,8 +30,7 @@
   "dsh": {
     "bundle": {
       "patch": [
-        "./cordis.patch.yml",
-        "./presets/omarchy-general.patch.yml"
+        "./cordis.patch.yml"
       ]
     }
   },
