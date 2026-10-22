@@ -141,8 +141,14 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: "󰚩"
-    active: root.serverRunning
+    // The harness bolts shut while the server runs: an outline fitting at rest,
+    // a solid one when live, so the bar reads the state without a label.
+    iconComponent: Component {
+      DshMark {
+        color: button.foreground
+        filled: root.serverRunning
+      }
+    }
     tooltipText: "DeepSeek Harness"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) root.openWeb()
@@ -303,11 +309,15 @@ Panel {
   Component {
     id: heroIcon
 
-    Text {
-      text: "󰚩"
-      color: root.foreground
-      font.family: root.fontFamily
-      font.pixelSize: Style.font.display
+    Item {
+      width: Style.font.display
+      height: Style.font.display
+
+      DshMark {
+        anchors.fill: parent
+        color: root.foreground
+        gradient: true
+      }
     }
   }
 
