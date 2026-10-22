@@ -1,3 +1,5 @@
+<p align="center"><img src="icon.svg" width="96" height="96" alt="dsh-omarchy-agent icon"></p>
+
 # dsh-omarchy-agent
 
 English | [中文](README.zh.md)
