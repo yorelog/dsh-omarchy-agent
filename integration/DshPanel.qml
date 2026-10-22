@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // One AI icon in the bar, one panel: start/stop the dsh web server, open the
@@ -30,20 +31,21 @@ Panel {
   readonly property string permissionMode: String(setting("permissionMode", "danger-full-access"))
   readonly property int refreshIntervalSec: Number(setting("refreshIntervalSec", 10))
 
-  readonly property color foreground: bar ? bar.foreground : Color.foreground
+  readonly property color foreground: bar ? bar.foreground : Commons.Color.foreground
   readonly property color dim: Qt.darker(foreground, 1.55)
-  readonly property color urgent: bar ? bar.urgent : Color.urgent
+  readonly property color urgent: bar ? bar.urgent : Commons.Color.urgent
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property bool unitActive: false
   property bool portOpen: false
   readonly property bool serverRunning: unitActive || portOpen
+  readonly property bool externalServer: portOpen && !unitActive
 
   property string themeName: ""
   property int monitorCount: 0
   property int workspaceCount: 0
   property int failedUnits: 0
-  property var deepseek: null
+  property string defaultAgent: ""
 
   property string lastError: ""
   property bool pendingOpen: false
@@ -63,7 +65,7 @@ Panel {
     probe(monitorsProc)
     probe(workspacesProc)
     probe(unitsProc)
-    probe(usageProc)
+    probe(agentProc)
   }
 
   function probe(process) {
@@ -72,13 +74,17 @@ Panel {
 
   function startServer() {
     if (startProc.running) return
+    if (externalServer) {
+      lastError = "dsh web is already running outside the panel on port " + port
+      return
+    }
     lastError = ""
     pendingTicks = 0
     startProc.running = true
   }
 
   function stopServer() {
-    if (stopProc.running) return
+    if (stopProc.running || !unitActive) return
     stopProc.running = true
   }
 
@@ -109,32 +115,33 @@ Panel {
   }
 
   function serverLabel() {
-    return serverRunning ? "Running" : "Stopped"
+    return serverRunning ? (externalServer ? "External" : "Running") : "Stopped"
   }
 
   function serverDetail() {
-    return "127.0.0.1:" + port
+    return externalServer ? "outside the panel · :" + port : "127.0.0.1:" + port
   }
 
-  function deepseekValue() {
-    var record = deepseek
-    if (!record) return ""
-    if (record.balance && typeof record.balance.remaining === "number") {
-      var currency = record.balance.currency ? " " + String(record.balance.currency) : ""
-      return Number(record.balance.remaining).toFixed(2) + currency
+  // Read-only from the shell's point of view apart from the two dsh-web
+  // lifecycle calls this panel owns; Omarchy's plugin and agent choices stay
+  // outside this target.
+  IpcHandler {
+    target: root.ipcTarget
+
+    function open(): void { root.open() }
+    function close(): void { root.close() }
+    function toggle(): void { root.toggle() }
+    function start(): string { root.startServer(); return "ok" }
+    function stop(): string { root.stopServer(); return "ok" }
+    function refresh(): string { root.refresh(); return "ok" }
+    function status(): string {
+      return JSON.stringify({
+        running: root.serverRunning,
+        managed: root.unitActive,
+        external: root.externalServer,
+        port: root.port
+      })
     }
-    if (typeof record.totalPrompts === "number") return record.totalPrompts + " prompts"
-    return "—"
-  }
-
-  function deepseekDetail() {
-    var record = deepseek
-    if (!record) return ""
-    var parts = []
-    if (record.tierLabel) parts.push(String(record.tierLabel))
-    if (typeof record.totalPrompts === "number") parts.push(record.totalPrompts + " prompts")
-    if (record.usageStatusText) parts.push(String(record.usageStatusText))
-    return parts.join(" · ")
   }
 
   BarIconButton {
@@ -208,12 +215,17 @@ Panel {
 
           Button {
             width: parent.width
-            text: root.serverRunning ? "Stop dsh web" : "Start dsh web"
+            text: root.externalServer
+              ? "dsh web running outside the panel"
+              : (root.serverRunning ? "Stop dsh web" : "Start dsh web")
             iconText: root.serverRunning ? "󰓛" : "󰐊"
-            tooltipText: root.serverRunning ? "Stop the dsh web server" : "Start the dsh web server"
+            tooltipText: root.externalServer
+              ? "Another dsh web owns this port; stop it outside the panel"
+              : (root.serverRunning ? "Stop the dsh web server" : "Start the dsh web server")
             foreground: root.foreground
             fontFamily: root.fontFamily
             bordered: true
+            enabled: !root.externalServer
             onClicked: root.toggleServer()
           }
 
@@ -279,17 +291,9 @@ Panel {
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
-            label: "PROFILE"
-            value: "web"
+            label: "DEFAULT AGENT"
+            value: root.defaultAgent !== "" ? root.defaultAgent : "—"
           }
-        }
-
-        StatCard {
-          visible: root.deepseek !== null
-          width: parent.width
-          label: "DEEPSEEK"
-          value: root.deepseekValue()
-          detail: root.deepseekDetail()
         }
 
         Text {
@@ -465,22 +469,14 @@ Panel {
   }
 
   Process {
-    id: usageProc
-    command: ["bash", "-c", "cat \"$HOME/.local/state/omarchy/agents/usage/deepseek.json\" 2>/dev/null || true"]
+    id: agentProc
+    command: [
+      "bash", "-c",
+      "cat \"$HOME/.config/omarchy/defaults/agent\" 2>/dev/null || omarchy-default-agent 2>/dev/null || true"
+    ]
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: {
-        var raw = String(text).trim()
-        if (raw === "") {
-          root.deepseek = null
-          return
-        }
-        try {
-          root.deepseek = JSON.parse(raw)
-        } catch (error) {
-          root.deepseek = null
-        }
-      }
+      onStreamFinished: root.defaultAgent = String(text).trim()
     }
   }
 

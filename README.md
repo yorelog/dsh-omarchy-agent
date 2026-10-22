@@ -31,14 +31,16 @@ plugin adds the Omarchy knowledge the agent needs.
 - **It cannot break Omarchy.** `/usr/share/omarchy` is read-only to the agent;
   your changes stay in `~/.config`.
 - **One icon controls the rest.** Start or stop `dsh web`, open the web UI or
-  CLI, and watch the server, theme, displays, and DeepSeek usage from the top
-  bar.
+  CLI, and watch the server, theme, displays, failed units, and current default
+  agent from the top bar.
 - **Cards instead of JSON.** Tool results render as small Omarchy cards inside a
   dsh web session.
 
 ## Install
 
-`dsh` must be on your `PATH`. If it is missing, the installer adds it with mise.
+`dsh` must already be on your `PATH`. Omarchy owns installing and selecting it;
+on a released Omarchy that does not list dsh yet, install it yourself with
+`mise use -g npm:@deepseek-ai/dsh@latest`, then open a new shell.
 
 **Main way: npm**
 
@@ -72,6 +74,9 @@ dsh plugin --profile web add dsh-omarchy-agent@<version>
 omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
 omarchy plugin enable dsh-omarchy-agent right   # put it on the right
 ```
+
+Enabling the panel does not install the dsh bundle; the bar plugin and the dsh
+bundle are separate, so run the installer above as well.
 
 **From a checkout:** `dsh plugin --profile web add .`
 
@@ -177,8 +182,11 @@ Releases run in GitHub Actions; see
 - `dsh` has no stable release yet; every version is an alpha or rc.
 - `dsh` ships no terminal UI. `dsh web` is the interactive app;
   `dsh --profile headless "task"` is one-shot.
-- DeepSeek uploads session logs by default. Turn that off in the web UI under
-  _Settings → General → Upload Session Log_.
+- DeepSeek uploads session logs by default when you use its official model API.
+  Turn that off in the web UI under _Settings → General → Upload Session Log_.
+- Feedback telemetry is a separate channel: `DSH_TELEMETRY_MODE=DISABLED`
+  disables the OTel feedback export, while `DSH_TELEMETRY_DISABLED` opts the
+  process out of telemetry entirely.
 
 ## License
 

@@ -29,12 +29,13 @@ coding agent 很会写代码，却看不见桌面。这个插件给 `dsh` 操作
 - **它弄不坏 Omarchy。** `/usr/share/omarchy` 对 agent 只读；你的改动留在
   `~/.config`。
 - **一个图标控制全部。** 在顶栏启动/停止 `dsh web`、打开 Web UI 或 CLI，查看
-  server、主题、显示器、DeepSeek 用量。
+  server、主题、显示器、失败单元和当前默认 agent。
 - **卡片，不是 JSON。** 工具结果在 dsh web 会话里显示成小的 Omarchy 卡片。
 
 ## 安装
 
-`dsh` 必须在 `PATH` 上。没有的话，安装器会用 mise 装上。
+`dsh` 必须已经在 `PATH` 上。安装和选择由 Omarchy 负责；如果当前 Omarchy 还不认识
+dsh，先自己安装：`mise use -g npm:@deepseek-ai/dsh@latest`，然后开新 shell。
 
 **主要方式：npm**
 
@@ -67,6 +68,8 @@ dsh plugin --profile web add dsh-omarchy-agent@<version>
 omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
 omarchy plugin enable dsh-omarchy-agent right   # 放到右侧
 ```
+
+启用面板不会安装 dsh bundle；bar 插件和 dsh bundle 是分开的，上面的安装器也要跑。
 
 **从 checkout 安装：** `dsh plugin --profile web add .`
 
@@ -168,8 +171,10 @@ agent 插件在 `src/`；web 卡片在 `src/client/`。`lib/` 已提交，CI 会
 - `dsh` 还没有稳定版，所有版本都是 alpha 或 rc。
 - `dsh` 没有终端 UI。`dsh web` 是交互界面；`dsh --profile headless "task"`
   是一次性执行。
-- DeepSeek 默认上传 session log。在 Web UI 的
+- DeepSeek 在使用官方模型 API 时默认上传 session log。在 Web UI 的
   _Settings → General → Upload Session Log_ 里关闭。
+- 反馈遥测是另一条通道：`DSH_TELEMETRY_MODE=DISABLED` 关闭 OTel 反馈导出，
+  `DSH_TELEMETRY_DISABLED` 让整个进程退出遥测。
 
 ## 许可证
 

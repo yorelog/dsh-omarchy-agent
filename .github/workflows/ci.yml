@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check shell scripts parse
-        run: bash -n install.sh uninstall.sh scripts/plugin-integrate.sh
+        run: bash -n install.sh uninstall.sh
 
       - uses: actions/setup-node@v4
         with:

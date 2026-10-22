@@ -16,7 +16,6 @@ HEADLESS_PROFILE="${DSH_OMARCHY_HEADLESS_PROFILE:-headless}"
 DRY_RUN=false
 ASSUME_YES=false
 WANT_HEADLESS=false
-WANT_INSTALL_DSH=true
 PIN_VERSION=""
 
 say() { printf '%s\n' "$*"; }
@@ -35,7 +34,8 @@ usage() {
 Usage: ./install.sh [options]
 
 Adds dsh-omarchy-agent to a dsh profile. Omarchy's native dsh launcher runs the
-`web` profile, which is the default target.
+`web` profile, which is the default target. dsh itself must already be on PATH:
+Omarchy owns installing and selecting it.
 
 Options:
   -y, --yes               do not prompt (non-interactive)
@@ -43,7 +43,6 @@ Options:
       --profile <name>    profile to install into (default: web)
       --version <version>  pin the bundle to this npm version (default: latest)
       --headless          also install into the one-shot `headless` profile
-      --no-install-dsh    fail instead of installing dsh when it is missing
   -h, --help              show this help
 
 Environment:
@@ -59,7 +58,6 @@ while (($#)); do
     --profile) PROFILE=${2:?--profile needs a value}; shift 2 ;;
     --version | --pin) PIN_VERSION=${2:?--version needs a value}; shift 2 ;;
     --headless) WANT_HEADLESS=true; shift ;;
-    --no-install-dsh) WANT_INSTALL_DSH=false; shift ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
@@ -83,30 +81,18 @@ prepend_tool_paths() {
   export PATH
 }
 
-ensure_dsh() {
+require_dsh() {
   prepend_tool_paths
   if command -v dsh >/dev/null 2>&1; then
     say "• dsh found: $(command -v dsh)"
     return 0
   fi
 
-  $WANT_INSTALL_DSH || die "dsh is not on PATH. Install it first (Omarchy: 'omarchy default agent dsh'; otherwise 'mise use -g npm:@deepseek-ai/dsh@latest') and re-run."
-  command -v mise >/dev/null 2>&1 || die "dsh is not on PATH and mise is not installed. Install dsh first (Omarchy: 'omarchy default agent dsh')."
-
-  say "• installing dsh with mise"
-  # When Omarchy declares the tool, `mise install` keeps the user's mise config
-  # untouched. Otherwise this is a standalone install and the user config is the
-  # only place mise can record it.
-  if command -v omarchy-mise-default-tools >/dev/null 2>&1 &&
-    omarchy-mise-default-tools declares npm:@deepseek-ai/dsh; then
-    run mise install node npm:@deepseek-ai/dsh
-  else
-    run env MISE_PRERELEASES=true MISE_MINIMUM_RELEASE_AGE=0 mise use -g npm:@deepseek-ai/dsh@latest
+  if supports_dsh_default_agent; then
+    die "dsh is not on PATH. Select it once with 'omarchy default agent dsh', then re-run this installer."
   fi
-  run mise reshim || true
-  if $DRY_RUN; then return 0; fi
-  prepend_tool_paths
-  command -v dsh >/dev/null 2>&1 || die "dsh is still not on PATH after installing; open a new shell and re-run."
+
+  die "dsh is not on PATH. Install it yourself first (for example 'mise use -g npm:@deepseek-ai/dsh@latest'), then re-run this installer."
 }
 
 ensure_pnpm() {
@@ -163,7 +149,7 @@ main() {
   say "repository: $REPO_DIR"
   say ""
 
-  ensure_dsh
+  require_dsh
   ensure_pnpm
   install_bundle "$PROFILE"
   $WANT_HEADLESS && install_bundle "$HEADLESS_PROFILE"

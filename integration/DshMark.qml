@@ -50,7 +50,10 @@ Item {
 
       var cx = 32
       var cy = 32
-      var radius = root.filled ? 27 : 26
+      // The omarchy bar fits a custom Canvas to its 12px icon target using the
+      // item bounds, so the artwork nearly fills the 64-unit canvas instead of
+      // shrinking inside it.
+      var radius = root.filled ? 31 : 28.5
       var caretWidth = 7
 
       function traceHexagon() {
@@ -67,9 +70,9 @@ Item {
 
       function traceCaret() {
         ctx.beginPath()
-        ctx.moveTo(25, 21.5)
-        ctx.lineTo(40, 32)
-        ctx.lineTo(25, 42.5)
+        ctx.moveTo(24, 20)
+        ctx.lineTo(41, 32)
+        ctx.lineTo(24, 44)
       }
 
       if (root.filled) {
