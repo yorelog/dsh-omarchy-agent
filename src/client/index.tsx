@@ -50,69 +50,6 @@ export function apply(ctx: Context): void {
       ctx.slots.register({ name: 'tool.call.toolview', key: tool }, OmarchyToolRow),
     )
   }
-  installPromptBridge()
-}
-
-const PROMPT_ORIGIN = 'http://127.0.0.1:3081'
-
-/**
- * The bar panel POSTs a card prompt to the host broker; this page polls it and
- * inserts the text into the composer. Nothing is sent. The broker is loopback
- * only, and each prompt is acknowledged after it lands so it is inserted once.
- */
-function installPromptBridge(): void {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return
-  let lastId = 0
-  let polling = false
-  const poll = async (): Promise<void> => {
-    if (polling) return
-    polling = true
-    try {
-      const response = await fetch(`${PROMPT_ORIGIN}/prompt?after=${lastId}`, { cache: 'no-store' })
-      if (!response.ok) return
-      const data = (await response.json()) as { id?: unknown; text?: unknown }
-      const id = typeof data.id === 'number' ? data.id : 0
-      const text = typeof data.text === 'string' ? data.text : null
-      if (text !== null && text.trim() !== '') {
-        if (insertComposerText(text)) {
-          lastId = id
-          await fetch(`${PROMPT_ORIGIN}/ack?id=${id}`, { cache: 'no-store' })
-        }
-      } else if (id > lastId) {
-        lastId = id
-      }
-    } catch {
-      // The broker only exists while the host plugin is loaded; a miss is fine.
-    } finally {
-      polling = false
-    }
-  }
-  void poll()
-  window.setInterval(() => void poll(), 1000)
-}
-
-/**
- * Insert plain text at the end of the visible composer. The dsh composer is a
- * Lexical contenteditable; execCommand is the narrowest supported way to make
- * the edit participate in its input state.
- */
-function insertComposerText(text: string): boolean {
-  const editors = Array.from(document.querySelectorAll<HTMLElement>('[data-lexical-editor="true"]')).filter(
-    (editor) => editor.isContentEditable && editor.getClientRects().length > 0,
-  )
-  if (editors.length === 0) return false
-  const editor = editors.reduce((best, candidate) =>
-    candidate.getBoundingClientRect().bottom > best.getBoundingClientRect().bottom ? candidate : best,
-  )
-  editor.focus()
-  const selection = window.getSelection()
-  if (selection === null) return false
-  const range = document.createRange()
-  range.selectNodeContents(editor)
-  range.collapse(false)
-  selection.removeAllRanges()
-  selection.addRange(range)
-  return document.execCommand('insertText', false, text)
 }
 
 type Json = Record<string, unknown>

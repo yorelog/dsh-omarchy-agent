@@ -16,7 +16,7 @@ Your coding agent can write code all day, but it can't see the desktop around it
 - **It finds the real command.** `omarchy_catalog` searches `omarchy commands --json`, so dsh uses a command that actually exists instead of inventing one.
 - **It reads Omarchy's source.** `omarchy_source` searches docs, agent skills, shell source, and config with line numbers, then the `read` tool opens the file.
 - **It keeps the harness in reach.** The bar panel shows the dsh web server, CLI version, default agent, permission mode, working directory, session count, DeepSeek usage, and those live signals.
-- **The panel is readable both ways.** `omarchy_panel` gives dsh the same cards; clicking one hands its context to dsh web.
+- **The panel is readable both ways.** `omarchy_panel` gives dsh the same cards; clicking one copies its context and opens a fresh dsh web window.
 - **It stays out of the way.** Inspecting the desktop, plugins, agents, and usage is read-only. Installing dsh, choosing a default agent, and enabling plugins stay with you.
 - **Cards instead of JSON.** Tool results become small Omarchy cards inside a dsh web session.
 
@@ -67,7 +67,7 @@ Or click the DeepSeek Harness icon in the bar:
 
 The panel opens under its icon. If another `dsh web` already owns the port, it shows **External** and disables its own Start/Stop instead of starting a second server.
 
-Every card is clickable. Click **Load**, **Errors**, **Recent apps**, **Project**, or any other card and dsh web opens with a ready-to-edit prompt built from that signal. Nothing is sent until you press send. Restart `dsh web` once after installing or updating so the client bridge loads.
+Every card is clickable. Click **Load**, **Errors**, **Recent apps**, **Project**, or any other card and the panel copies that signal's context to the clipboard and opens a new dsh web window. Paste it with `Win+V` (or your clipboard shortcut), edit it, and send when ready. The panel never sends for you.
 
 ## Settings
 

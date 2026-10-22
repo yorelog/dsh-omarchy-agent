@@ -16,7 +16,7 @@ coding agent 很会写代码，却看不见桌面。这个插件把实时桌面�
 - **它找得到真正的命令。** `omarchy_catalog` 搜索 `omarchy commands --json`，用真实存在的路由，而不是编一个。
 - **它读得到 Omarchy 的源码。** `omarchy_source` 在文档、agent skill、shell 源码和配置里带行号检索，再用 `read` 打开文件。
 - **它把 harness 放在手边。** 顶栏面板显示 dsh web 状态、CLI 版本、默认 agent、权限模式、工作目录、会话数、DeepSeek 用量，以及上面这些实时信号。
-- **面板双向可读。** `omarchy_panel` 把同一组卡片交给 dsh；点卡片则把上下文送进 dsh web。
+- **面板双向可读。** `omarchy_panel` 把同一组卡片交给 dsh；点卡片会复制上下文并打开一个新的 dsh web 窗口。
 - **它只查看，不接管。** 桌面、插件、agent 和用量的检查都是只读的；安装 dsh、选择默认 agent、启用插件仍由你决定。
 - **卡片，不是 JSON。** 工具结果在 dsh web 会话里显示成小的 Omarchy 卡片。
 
@@ -67,7 +67,7 @@ BarIconButton 的文档在哪？
 
 面板会开在图标下方。如果端口已经被另一个 `dsh web` 占用，它会显示 **External**，并禁用自己的 Start/Stop，而不是再启动一个服务器。
 
-面板里的卡片都能点。点 **Load**、**Errors**、**Recent apps**、**Project** 或任意卡片，dsh web 会带着根据该信号生成的提示词打开，你可以改完再发送。安装或升级后重启一次 `dsh web`，让客户端桥接生效。
+面板里的卡片都能点。点 **Load**、**Errors**、**Recent apps**、**Project** 或任意卡片，面板会把该信号的上下文复制到剪贴板，并新建一个 dsh web 窗口。用 `Win+V`（或你的剪贴板快捷键）粘贴，改完再发送。面板不会替你发送。
 
 ## 设置
 

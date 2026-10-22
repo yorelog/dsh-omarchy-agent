@@ -30,10 +30,6 @@ Panel {
   readonly property int port: Number(setting("port", 3080))
   readonly property string permissionMode: String(setting("permissionMode", "danger-full-access"))
   readonly property int refreshIntervalSec: Number(setting("refreshIntervalSec", 10))
-  readonly property string brokerScript: {
-    var url = Qt.resolvedUrl("../scripts/prompt-broker.mjs").toString()
-    return decodeURIComponent(url.replace(/^file:\/\//, ""))
-  }
 
   readonly property color foreground: bar ? bar.foreground : Commons.Color.foreground
   readonly property color dim: Qt.darker(foreground, 1.55)
@@ -66,7 +62,7 @@ Panel {
   property bool pendingOpen: false
   property bool pendingStart: false
   property int pendingTicks: 0
-  property string pendingPrompt: ""
+  property bool pendingNewWindow: false
 
   onOpenedChanged: {
     if (opened) {
@@ -125,10 +121,10 @@ Panel {
   function launchWeb() {
     pendingOpen = false
     pendingTicks = 0
-    if (pendingPrompt !== "") {
-      var text = pendingPrompt
-      pendingPrompt = ""
-      deliverPrompt(text)
+    if (pendingNewWindow) {
+      pendingNewWindow = false
+      launchNewWindow()
+      return
     }
     if (!openProc.running) openProc.running = true
     close()
@@ -141,6 +137,13 @@ Panel {
     }
     pendingOpen = true
     startServer()
+  }
+
+  function launchNewWindow() {
+    if (newWebProc.running) return
+    newWebProc.command = ["omarchy-launch-webapp", "http://127.0.0.1:" + port + "/?panel=" + Date.now()]
+    newWebProc.running = true
+    close()
   }
 
   function openTerminal() {
@@ -307,26 +310,23 @@ Panel {
     return lines.join("\n")
   }
 
-  function deliverPrompt(text) {
-    if (text === "" || promptProc.running) return
-    var clean = String(text).trim()
-    promptProc.command = [
-      "bash", "-c",
-      "printf '%s' \"$1\" | wl-copy 2>/dev/null || true; printf '%s' \"$1\" | curl -sS --max-time 2 -X POST -H 'content-type: text/plain' --data-binary @- http://127.0.0.1:3081/prompt >/dev/null 2>&1 || true",
-      "_", clean
-    ]
-    promptProc.running = true
+  function copyPrompt(text) {
+    if (text === "") return
+    copyProc.command = ["bash", "-c", "printf '%s' \"$1\" | wl-copy", "_", String(text).trim()]
+    copyProc.running = true
   }
 
   function askCard(id) {
     var text = cardPrompt(id)
     if (text === "") return false
+    copyPrompt(text)
     if (serverRunning) {
-      deliverPrompt(text)
-    } else {
-      pendingPrompt = text
+      launchNewWindow()
+      return true
     }
-    openWeb()
+    pendingNewWindow = true
+    pendingOpen = true
+    startServer()
     return true
   }
 
@@ -933,7 +933,7 @@ Panel {
   }
 
   Process {
-    id: promptProc
+    id: copyProc
     command: []
   }
 
@@ -1046,7 +1046,6 @@ Panel {
         root.probe(portProc)
       } else {
         root.pendingOpen = false
-        root.pendingPrompt = ""
         root.lastError = "Could not start dsh web (systemd-run exited " + exitCode + ")"
       }
     }
@@ -1067,9 +1066,8 @@ Panel {
   }
 
   Process {
-    id: brokerProc
-    command: ["bash", "-lc", "exec node \"$1\"", "_", root.brokerScript]
-    running: true
+    id: newWebProc
+    command: []
   }
 
   Process {
