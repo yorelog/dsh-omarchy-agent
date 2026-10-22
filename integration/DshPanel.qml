@@ -306,10 +306,16 @@ Panel {
 
   function deliverPrompt(text) {
     if (text === "" || promptProc.running) return
+    var clean = String(text)
+      .replace(/·/g, "|")
+      .replace(/—/g, "-")
+      .replace(/…/g, "...")
+      .replace(/\s+/g, " ")
+      .trim()
     promptProc.command = [
       "bash", "-c",
-      "printf '%s' \"$1\" | wl-copy; omarchy-launch-or-focus-webapp DeepSeek \"http://127.0.0.1:$2\" >/dev/null 2>&1; sleep 1.5; command -v wtype >/dev/null 2>&1 && wtype -M ctrl -k v -m ctrl || true",
-      "_", text, String(port)
+      "printf '%s' \"$1\" | wl-copy; omarchy-launch-or-focus-webapp DeepSeek \"http://127.0.0.1:$2\" >/dev/null 2>&1; sleep 1.5; command -v wtype >/dev/null 2>&1 || exit 0; wtype -k slash; sleep 0.15; wtype -k BackSpace; wtype -k Escape; sleep 0.1; wtype \"$1\"",
+      "_", clean, String(port)
     ]
     promptProc.running = true
     close()
