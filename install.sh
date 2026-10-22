@@ -17,6 +17,7 @@ DRY_RUN=false
 ASSUME_YES=false
 WANT_HEADLESS=false
 WANT_INSTALL_DSH=true
+PIN_VERSION=""
 
 say() { printf '%s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
@@ -40,6 +41,7 @@ Options:
   -y, --yes               do not prompt (non-interactive)
   -n, --dry-run           print what would change without changing anything
       --profile <name>    profile to install into (default: web)
+      --version <version>  pin the bundle to this npm version (default: latest)
       --headless          also install into the one-shot `headless` profile
       --no-install-dsh    fail instead of installing dsh when it is missing
   -h, --help              show this help
@@ -55,12 +57,17 @@ while (($#)); do
     -y | --yes) ASSUME_YES=true; shift ;;
     -n | --dry-run) DRY_RUN=true; shift ;;
     --profile) PROFILE=${2:?--profile needs a value}; shift 2 ;;
+    --version | --pin) PIN_VERSION=${2:?--version needs a value}; shift 2 ;;
     --headless) WANT_HEADLESS=true; shift ;;
     --no-install-dsh) WANT_INSTALL_DSH=false; shift ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
 done
+
+if [[ -n $PIN_VERSION && ! $PIN_VERSION =~ ^[0-9A-Za-z._+-]+$ ]]; then
+  die "invalid version: $PIN_VERSION"
+fi
 
 # A Quickshell service or a systemd-launched shell may not inherit mise's shim
 # directory, so put the two places a dsh install lands on PATH first.
@@ -117,19 +124,15 @@ ensure_pnpm() {
 
 # A checkout tracks local edits; an npm-installed copy is added by name so the
 # profile owns its own copy and a package-manager prune cannot break the link.
-# A checkout tracks local edits; an npm-installed copy pins the version it is
-# running, so pnpm's minimumReleaseAge cannot fall back to an older release.
+# A checkout tracks local edits; an npm-installed copy uses the package name
+# unless --version pins a release.
 bundle_spec() {
-  if [[ -d "$REPO_DIR/.git" ]]; then
-    printf '%s\n' "$REPO_DIR"
+  if [[ -n $PIN_VERSION ]]; then
+    printf '%s@%s\n' "$BUNDLE" "$PIN_VERSION"
     return
   fi
-  local version=""
-  if [[ -f "$REPO_DIR/package.json" ]] && command -v node >/dev/null 2>&1; then
-    version="$(node -p 'require(process.argv[1]).version' "$REPO_DIR/package.json" 2>/dev/null || true)"
-  fi
-  if [[ -n $version ]]; then
-    printf '%s@%s\n' "$BUNDLE" "$version"
+  if [[ -d "$REPO_DIR/.git" ]]; then
+    printf '%s\n' "$REPO_DIR"
   else
     printf '%s\n' "$BUNDLE"
   fi

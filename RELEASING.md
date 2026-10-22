@@ -25,11 +25,11 @@ npm trust github dsh-omarchy-agent \
 ## Release
 
 ```sh
-npm version 0.3.2 --no-git-tag-version
+npm version <version> --no-git-tag-version
 git add package.json package-lock.json manifest.json
-git commit -m "chore(release): 0.3.2"
-git tag v0.3.2
-git push origin main v0.3.2
+git commit -m "chore(release): <version>"
+git tag v<version>
+git push origin main v<version>
 ```
 
 The tag starts the **Publish** workflow. It checks that the tag matches

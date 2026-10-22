@@ -38,20 +38,27 @@ plugin adds the Omarchy knowledge the agent needs.
 **Main way: npm**
 
 ```sh
-mise use -g npm:dsh-omarchy-agent@0.3.5
+mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
 ```
-
-Pin the version: mise hides npm releases newer than 24 hours by default, so a
-bare `npm:dsh-omarchy-agent` can pick an old release.
 
 That adds the plugin to the `web` profile used by `dsh web`. Add `--headless`
 for one-shot runs, or `--dry-run` to see the plan first.
 
+mise hides npm releases newer than 24 hours by default, so a bare package can
+pick an old release. To pin one:
+
+```sh
+mise use -g npm:dsh-omarchy-agent@<version>
+dsh-omarchy-agent-install --version <version>
+```
+
 Already have `dsh` and `pnpm`? Skip the installer:
 
 ```sh
-dsh plugin --profile web add dsh-omarchy-agent@0.3.5
+dsh plugin --profile web add dsh-omarchy-agent
+# or pin:
+dsh plugin --profile web add dsh-omarchy-agent@<version>
 ```
 
 **Want the top-bar panel?** Install the Omarchy plugin too:
