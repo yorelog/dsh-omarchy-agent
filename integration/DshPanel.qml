@@ -224,6 +224,14 @@ Panel {
     return recentApps !== "" ? recentApps : "—"
   }
 
+  function prettyApp(name) {
+    if (name.indexOf("chrome-127.0.0.1") === 0) return ""
+    if (name === "com.microsoft.VSCode" || name === "code" || name === "code-oss") return "VSCode"
+    if (name === "chromium") return "Chromium"
+    if (name === "google-chrome" || name === "chrome") return "Chrome"
+    return name
+  }
+
   function errorsDetail() {
     return lastErrorLine !== "" ? lastErrorLine : "no errors in the last hour"
   }
@@ -773,7 +781,7 @@ Panel {
           var names = []
           for (var i = 0; i < clients.length && names.length < 3; i++) {
             var name = clients[i].class || clients[i].initialClass || clients[i].title || ""
-            name = String(name).trim()
+            name = root.prettyApp(String(name).trim())
             if (name !== "" && names.indexOf(name) < 0) names.push(name)
           }
           root.recentApps = names.join(" · ")
@@ -788,13 +796,13 @@ Panel {
     id: projectProc
     command: [
       "bash", "-c",
-      "basename \"$1\"; git -C \"$1\" rev-parse --abbrev-ref HEAD 2>/dev/null; git -C \"$1\" status --porcelain 2>/dev/null | wc -l",
+      "printf '%s|%s|%s\\n' \"$(basename \"$1\")\" \"$(git -C \"$1\" rev-parse --abbrev-ref HEAD 2>/dev/null)\" \"$(git -C \"$1\" status --porcelain 2>/dev/null | wc -l)\"",
       "_", root.workDir
     ]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
-        var parts = String(text).trim().split("\n")
+        var parts = String(text).trim().split("|")
         root.projectName = (parts[0] || "").trim()
         root.gitBranch = (parts[1] || "").trim()
         var dirty = parseInt(parts[2], 10)
