@@ -44,6 +44,7 @@ assert.deepEqual(
     'omarchy_agent',
     'omarchy_plugin',
     'omarchy_shell',
+    'omarchy_panel',
   ],
   'one tool view per Omarchy tool',
 )
@@ -56,4 +57,4 @@ assert.ok(
   'every registration has a component',
 )
 
-console.log('client smoke test passed: 9 tool views registered')
+console.log('client smoke test passed: 10 tool views registered')

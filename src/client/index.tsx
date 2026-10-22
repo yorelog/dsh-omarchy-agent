@@ -23,6 +23,7 @@ const TOOLS = [
   'omarchy_agent',
   'omarchy_plugin',
   'omarchy_shell',
+  'omarchy_panel',
 ] as const
 
 const LABELS: Record<string, string> = {
@@ -35,6 +36,7 @@ const LABELS: Record<string, string> = {
   omarchy_agent: 'Omarchy agents',
   omarchy_plugin: 'Omarchy plugins',
   omarchy_shell: 'Omarchy shell',
+  omarchy_panel: 'Harness panel',
 }
 
 /**
@@ -167,6 +169,8 @@ function summaryOf(tool: string, value: unknown): string | undefined {
     }
     case 'omarchy_shell':
       return str(v.action)
+    case 'omarchy_panel':
+      return str(v.action) === 'activate' ? `activate ${str(v.id) ?? ''}` : 'panel signals'
     default:
       return undefined
   }

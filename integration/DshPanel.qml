@@ -62,6 +62,7 @@ Panel {
   property bool pendingOpen: false
   property bool pendingStart: false
   property int pendingTicks: 0
+  property string pendingPrompt: ""
 
   onOpenedChanged: {
     if (opened) {
@@ -120,6 +121,12 @@ Panel {
   function launchWeb() {
     pendingOpen = false
     pendingTicks = 0
+    if (pendingPrompt !== "") {
+      var text = pendingPrompt
+      pendingPrompt = ""
+      deliverPrompt(text)
+      return
+    }
     if (!openProc.running) openProc.running = true
     close()
   }
@@ -236,6 +243,147 @@ Panel {
     return lastErrorLine !== "" ? lastErrorLine : "no errors in the last hour"
   }
 
+  function cardPrompt(id) {
+    var lines = ["From the DeepSeek Harness bar panel:"]
+    switch (id) {
+    case "web":
+      lines.push("The dsh web server is " + serverLabel() + " on 127.0.0.1:" + port + ".")
+      lines.push("Explain what this means and what I should check before using it.")
+      break
+    case "cli":
+      lines.push("The dsh CLI is " + cliLabel() + "; the default agent is " + (defaultAgent !== "" ? defaultAgent : "not selected") + ".")
+      lines.push("Help me verify the CLI and pick the right way to start a session.")
+      break
+    case "agent":
+      lines.push("My Omarchy default agent is " + (defaultAgent !== "" ? defaultAgent : "not selected") + "; dsh is " + cliLabel() + ".")
+      lines.push("Help me decide whether dsh should be the default and what I need to run.")
+      break
+    case "permission":
+      lines.push("dsh is running with permission mode " + permissionMode + ".")
+      lines.push("Explain the risk of this mode and when I should use workspace-write instead.")
+      break
+    case "workdir":
+      lines.push("My dsh working directory is " + workDir + ".")
+      lines.push("Check what project is there and suggest the next useful step.")
+      break
+    case "sessions":
+      lines.push("I have " + sessionCount + " dsh sessions on this machine.")
+      lines.push("Help me find the most relevant one and summarize what I was working on.")
+      break
+    case "usage":
+      lines.push("DeepSeek usage from Omarchy: balance " + balanceLabel() + ", today " + todayLabel() + ", plan " + planLabel() + ", status " + usageStatus() + ".")
+      lines.push("Explain what this means and how I can keep usage under control.")
+      break
+    case "load":
+      lines.push("System load is " + loadLabel() + " on " + cpuLabel() + ".")
+      lines.push("Check what is consuming CPU and suggest what I should do.")
+      break
+    case "memory":
+      lines.push("Memory is " + memoryPercent() + " (" + memoryLabel() + ").")
+      lines.push("Check what is consuming memory and whether I should act.")
+      break
+    case "errors":
+      lines.push("There were " + recentErrors + " user journal errors in the last hour; the last was: " + (lastErrorLine !== "" ? lastErrorLine : "none") + ".")
+      lines.push("There are " + failedUnits + " failed user units. Diagnose the cause and give me the next command.")
+      break
+    case "failed-units":
+      lines.push("There are " + failedUnits + " failed user units.")
+      lines.push("Run a diagnosis and explain what failed and what I should do next.")
+      break
+    case "recent-apps":
+      lines.push("I have recently used: " + (recentApps !== "" ? recentApps : "no tracked apps") + ".")
+      lines.push("Help me pick up where I left off or check the state of these apps.")
+      break
+    case "project":
+      lines.push("My project is " + projectValue() + " in " + shortWorkDir() + " (" + projectDetail() + ").")
+      lines.push("Check the project state and suggest the next useful step.")
+      break
+    default:
+      return ""
+    }
+    return lines.join("\n")
+  }
+
+  function deliverPrompt(text) {
+    if (text === "" || promptProc.running) return
+    promptProc.command = [
+      "bash", "-c",
+      "printf '%s' \"$1\" | wl-copy; omarchy-launch-or-focus-webapp DeepSeek \"http://127.0.0.1:$2\" >/dev/null 2>&1; sleep 1.5; command -v wtype >/dev/null 2>&1 && wtype -M ctrl -k v -m ctrl || true",
+      "_", text, String(port)
+    ]
+    promptProc.running = true
+    close()
+  }
+
+  function askCard(id) {
+    var text = cardPrompt(id)
+    if (text === "") return false
+    if (serverRunning) {
+      deliverPrompt(text)
+      return true
+    }
+    pendingPrompt = text
+    pendingOpen = true
+    startServer()
+    return true
+  }
+
+  function activateCard(id) {
+    return askCard(id)
+  }
+
+  function panelSignals() {
+    return {
+      server: {
+        running: serverRunning,
+        managed: unitActive,
+        external: externalServer,
+        port: port
+      },
+      harness: {
+        cli: dshVersion,
+        defaultAgent: defaultAgent,
+        permission: permissionMode,
+        workdir: workDir,
+        sessions: sessionCount
+      },
+      usage: deepseek === null ? null : {
+        balance: balanceLabel(),
+        today: todayLabel(),
+        plan: planLabel(),
+        status: usageStatus()
+      },
+      signals: {
+        load: loadLabel(),
+        cores: cpuCount,
+        memoryPercent: memoryPercent(),
+        memory: memoryLabel(),
+        errors: recentErrors,
+        lastError: lastErrorLine,
+        failedUnits: failedUnits,
+        recentApps: recentApps,
+        project: projectName,
+        branch: gitBranch,
+        dirty: gitDirty
+      },
+      cards: [
+        { id: "web", label: "Web UI", value: serverLabel() },
+        { id: "cli", label: "dsh CLI", value: cliLabel() },
+        { id: "agent", label: "Default agent", value: defaultAgent !== "" ? defaultAgent : "Not selected" },
+        { id: "permission", label: "Permission", value: permissionLabel() },
+        { id: "workdir", label: "Workdir", value: shortWorkDir() },
+        { id: "sessions", label: "Sessions", value: String(sessionCount) },
+        { id: "usage", label: "DeepSeek usage", value: usageStatus() },
+        { id: "load", label: "Load", value: loadLabel() },
+        { id: "memory", label: "Memory", value: memoryPercent() },
+        { id: "errors", label: "Errors (1h)", value: String(recentErrors) },
+        { id: "failed-units", label: "Failed units", value: String(failedUnits) },
+        { id: "recent-apps", label: "Recent apps", value: recentApps },
+        { id: "project", label: "Project", value: projectName }
+      ]
+    }
+  }
+
   // Read-only from the shell's point of view apart from the two dsh-web
   // lifecycle calls this panel owns; Omarchy's plugin and agent choices stay
   // outside this target.
@@ -248,6 +396,8 @@ Panel {
     function start(): string { root.startServer(); return "ok" }
     function stop(): string { root.stopServer(); return "ok" }
     function refresh(): string { root.refresh(); return "ok" }
+    function signals(): string { return JSON.stringify(root.panelSignals()) }
+    function activate(id: string): string { return root.activateCard(id) ? "ok" : "unknown" }
     function status(): string {
       return JSON.stringify({
         running: root.serverRunning,
@@ -370,12 +520,16 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "WEB UI"
+            actionId: "web"
+            onActivated: root.activateCard("web")
             value: root.serverLabel()
             detail: root.serverDetail()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "DSH CLI"
+            actionId: "cli"
+            onActivated: root.activateCard("cli")
             value: root.cliLabel()
           }
         }
@@ -387,11 +541,15 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "DEFAULT AGENT"
+            actionId: "agent"
+            onActivated: root.activateCard("agent")
             value: root.defaultAgent !== "" ? root.defaultAgent : "Not selected"
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "PERMISSION"
+            actionId: "permission"
+            onActivated: root.activateCard("permission")
             value: root.permissionLabel()
           }
         }
@@ -403,11 +561,15 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "WORKDIR"
+            actionId: "workdir"
+            onActivated: root.activateCard("workdir")
             value: root.shortWorkDir()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "SESSIONS"
+            actionId: "sessions"
+            onActivated: root.activateCard("sessions")
             value: String(root.sessionCount)
           }
         }
@@ -426,11 +588,15 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "BALANCE"
+            actionId: "usage"
+            onActivated: root.activateCard("usage")
             value: root.balanceLabel()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "TODAY"
+            actionId: "usage"
+            onActivated: root.activateCard("usage")
             value: root.todayLabel()
           }
         }
@@ -443,11 +609,15 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "PLAN"
+            actionId: "usage"
+            onActivated: root.activateCard("usage")
             value: root.planLabel()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "USAGE STATUS"
+            actionId: "usage"
+            onActivated: root.activateCard("usage")
             value: root.usageStatus()
           }
         }
@@ -456,6 +626,8 @@ Panel {
           visible: root.deepseek === null
           width: parent.width
           label: "USAGE"
+          actionId: "usage"
+          onActivated: root.activateCard("usage")
           value: "Waiting for collector"
           detail: "Omarchy's agents panel fills this in."
         }
@@ -473,12 +645,16 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "LOAD"
+            actionId: "load"
+            onActivated: root.activateCard("load")
             value: root.loadLabel()
             detail: root.cpuLabel()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "MEMORY"
+            actionId: "memory"
+            onActivated: root.activateCard("memory")
             value: root.memoryPercent()
             detail: root.memoryLabel()
           }
@@ -491,12 +667,16 @@ Panel {
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "ERRORS (1H)"
+            actionId: "errors"
+            onActivated: root.activateCard("errors")
             value: String(root.recentErrors)
             detail: root.errorsDetail()
           }
           StatCard {
             width: (parent.width - parent.spacing) / 2
             label: "FAILED UNITS"
+            actionId: "failed-units"
+            onActivated: root.activateCard("failed-units")
             value: String(root.failedUnits)
           }
         }
@@ -504,12 +684,16 @@ Panel {
         StatCard {
           width: parent.width
           label: "RECENT APPS"
+          actionId: "recent-apps"
+          onActivated: root.activateCard("recent-apps")
           value: root.appsValue()
         }
 
         StatCard {
           width: parent.width
           label: "PROJECT"
+          actionId: "project"
+          onActivated: root.activateCard("project")
           value: root.projectValue()
           detail: root.projectDetail()
         }
@@ -548,10 +732,19 @@ Panel {
     property string label: ""
     property string value: ""
     property string detail: ""
+    property string actionId: ""
+
+    signal activated()
 
     implicitHeight: cardColumn.implicitHeight + Style.space(16)
     radius: Style.cornerRadius
-    color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.05)
+    color: card.actionId !== "" && cardMouse.containsMouse
+      ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.05)
+
+    Behavior on color {
+      ColorAnimation { duration: 120 }
+    }
 
     Column {
       id: cardColumn
@@ -592,6 +785,27 @@ Panel {
         textFormat: Text.PlainText
         elide: Text.ElideRight
       }
+    }
+
+    Text {
+      visible: card.actionId !== ""
+      text: "›"
+      anchors.right: parent.right
+      anchors.rightMargin: Style.space(8)
+      anchors.top: parent.top
+      anchors.topMargin: Style.space(4)
+      color: root.dim
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.title
+    }
+
+    MouseArea {
+      id: cardMouse
+      anchors.fill: parent
+      enabled: card.actionId !== ""
+      hoverEnabled: card.actionId !== ""
+      cursorShape: card.actionId !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
+      onClicked: card.activated()
     }
   }
 
@@ -717,6 +931,11 @@ Panel {
   }
 
   Process {
+    id: promptProc
+    command: []
+  }
+
+  Process {
     id: loadProc
     command: ["bash", "-c", "awk '{print $1}' /proc/loadavg; nproc"]
     stdout: StdioCollector {
@@ -780,8 +999,7 @@ Panel {
           })
           var names = []
           for (var i = 0; i < clients.length && names.length < 3; i++) {
-            var name = clients[i].class || clients[i].initialClass || clients[i].title || ""
-            name = root.prettyApp(String(name).trim())
+            var name = root.prettyApp(String(clients[i].class || clients[i].initialClass || "").trim())
             if (name !== "" && names.indexOf(name) < 0) names.push(name)
           }
           root.recentApps = names.join(" · ")
