@@ -5,6 +5,14 @@
   "type": "module",
   "license": "MIT",
   "author": "yorelog",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yorelog/dsh-omarchy-agent.git"
+  },
+  "homepage": "https://github.com/yorelog/dsh-omarchy-agent#readme",
+  "bugs": {
+    "url": "https://github.com/yorelog/dsh-omarchy-agent/issues"
+  },
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
@@ -48,6 +56,9 @@
     }
   },
   "icon": "./icon.svg",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "dsh-omarchy-agent-install": "install.sh",
     "dsh-omarchy-agent-uninstall": "uninstall.sh"

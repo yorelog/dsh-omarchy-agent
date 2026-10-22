@@ -151,6 +151,9 @@ mise run test      # smoke tests
 The agent plugin lives in `src/`; the web cards in `src/client/`. `lib/` is
 committed, and CI checks it matches the source.
 
+Releases run in GitHub Actions; see
+[RELEASING.md](https://github.com/yorelog/dsh-omarchy-agent/blob/main/RELEASING.md).
+
 ## Notes
 
 - `dsh` has no stable release yet; every version is an alpha or rc.

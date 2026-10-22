@@ -1,0 +1,33 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write   # npm Trusted Publishing (OIDC)
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Check that the tag matches package.json
+        run: |
+          node -e "const v = require('./package.json').version; if (process.env.GITHUB_REF_NAME !== 'v' + v) { console.error('tag ' + process.env.GITHUB_REF_NAME + ' does not match v' + v); process.exit(1) }"
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: node scripts/smoke-test.mjs
+      - run: node scripts/smoke-client.mjs
+      - run: npm publish --provenance

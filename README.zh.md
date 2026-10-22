@@ -145,6 +145,9 @@ mise run test      # smoke tests
 agent 插件在 `src/`；web 卡片在 `src/client/`。`lib/` 已提交，CI 会校验它与源码
 一致。
 
+发布在 GitHub Actions 里完成；见
+[RELEASING.md](https://github.com/yorelog/dsh-omarchy-agent/blob/main/RELEASING.md)。
+
 ## 说明
 
 - `dsh` 还没有稳定版，所有版本都是 alpha 或 rc。
