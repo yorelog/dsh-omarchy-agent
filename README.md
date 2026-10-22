@@ -21,13 +21,16 @@ prompt. No shims, no `PATH` edits, no shell or Hyprland rewrites.
   still denies writes to `/usr/share/omarchy`, the tree `omarchy update`
   overwrites, while leaving reads free.
 - **Zero intrusion.** No shims, no `PATH` edits, no `~/.bashrc`, fish,
-  `environment.d`, Hyprland, menu, or default-agent writes. Install is one npm
-  package and one command; uninstall is one more.
+  `environment.d`, Hyprland, menu, or default-agent writes. The agent bundle is
+  one npm package and one command; the bar widget comes from the Omarchy plugin.
 - **Built for Omarchy's native dsh support, not against it.** The bundle lands
   in the `web` profile that `dsh web` boots, so Omarchy keeps owning the
   launcher, the picker, and the usage panel.
 - **Renders in dsh web.** The same tools show as compact Omarchy cards in a web
   session, with the raw JSON behind a disclosure; the generic JSON card is gone.
+- **The bar owns the controls.** The Omarchy bar widget starts and stops
+  `dsh web`, opens the web UI or the dsh CLI, and shows live cards for the
+  server, theme, displays, workspaces, failed units, and DeepSeek usage.
 - **Small and auditable.** Five tools, one hook, one prompt section. There is no
   preset snapshot to resync on every dsh release; `lib/` is committed and CI
   checks it against `src/`.
@@ -78,7 +81,9 @@ dsh-omarchy-agent-install
 
 The installer ensures `dsh` and `pnpm`, then adds the bundle to the `web`
 profile. `--headless` also installs into the one-shot profile, `--profile
-<name>` targets another profile, and `--dry-run` prints the plan first.
+<name>` targets another profile, and `--dry-run` prints the plan first. The npm
+package installs the agent capabilities only; the bar widget is part of the
+Omarchy shell plugin below.
 
 With `dsh` and `pnpm` already on `PATH`, the npm package can go straight into
 the profile:
@@ -106,7 +111,8 @@ plugin --profile web update dsh-omarchy-agent`) refreshes the profile's copy.
 omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
 ```
 
-The plugin's service runs the npm installer once, in the background.
+The plugin's service runs the npm installer once, in the background. This is
+also the path that installs the bar widget and its panel.
 
 The target is the `web` profile because `dsh web` boots it (and Omarchy's
 launcher runs `dsh web`). Add `--headless` for
@@ -219,7 +225,9 @@ workspace counts, failed user units, and the DeepSeek record once
 `shell.json`. The server reads credentials from dsh's managed store
 (`~/.dsh/.credentials.yaml`) or, if you keep a key in the environment, from
 `~/.config/dsh/web.env`, which the start command sources. The npm bundle does
-not install this widget; it is part of the Omarchy plugin.
+not install this widget; it is part of the Omarchy plugin. If it is installed
+but not on the bar, place it with
+`omarchy plugin enable dsh-omarchy-agent right` or the bar settings.
 
 ## Using the tools
 
@@ -245,6 +253,9 @@ not have to guess routes.
   profile (`dsh plugin` changes apply at the next start).
 - **Port 3080 already in use** — a `dsh web` profile is already running. Open
   its URL instead of launching a second one.
+- **The bar icon is missing** — the widget ships with the Omarchy shell plugin,
+  not the npm bundle. Add or update it with `omarchy plugin add ... --enable`,
+  then place it with `omarchy plugin enable dsh-omarchy-agent right`.
 - **`omarchy agent` does not open dsh** — a released Omarchy without
   [#14455][pr14455] / [#14040][pr14040] does not list dsh yet; use `dsh web`.
   Once it does, select it with `omarchy default agent dsh`.

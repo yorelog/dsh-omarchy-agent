@@ -20,12 +20,15 @@ Omarchy 包目录的硬性保护规则、一段简短的约定提示词。没有
   仍然拒绝写入 `/usr/share/omarchy`（`omarchy update` 会覆盖的目录），读取不受
   限制。
 - **零侵入。** 没有 shim，不改 `PATH`，不写 `~/.bashrc`、fish、
-  `environment.d`、Hyprland、菜单或默认 agent 文件。安装是一个 npm 包加一条
-  命令，卸载一条。
+  `environment.d`、Hyprland、菜单或默认 agent 文件。agent bundle 是一个 npm
+  包加一条命令；顶栏 widget 由 Omarchy 插件提供。
 - **顺应 Omarchy 的原生 dsh 支持，而不是对抗它。** bundle 装进 `dsh web`
   启动的 `web` profile，启动器、选择器、用量面板仍由 Omarchy 负责。
 - **在 dsh web 里也有展示。** 同样的工具在 web 会话中渲染成紧凑的 Omarchy 卡片，
   原始 JSON 收在折叠项里，不再是通用 JSON 卡片。
+- **顶栏图标就是控制台。** Omarchy 顶栏 widget 可以启动/停止 `dsh web`、打开
+  Web UI 或 dsh CLI，并展示 server、主题、显示器、工作区、失败单元和 DeepSeek
+  用量的实时卡片。
 - **小而可审计。** 5 个工具、1 个 hook、1 段提示词；没有需要跟随 dsh 版本
   同步的 preset 快照；`lib/` 已提交，CI 校验它与 `src/` 一致。
 
@@ -73,7 +76,8 @@ dsh-omarchy-agent-install
 
 安装器会确保 `dsh` 和 `pnpm` 可用，然后把 bundle 装进 `web` profile。
 `--headless` 同时装入一次性 profile，`--profile <name>` 指定其他 profile，
-`--dry-run` 先打印计划。
+`--dry-run` 先打印计划。npm 包只安装 agent 能力；顶栏 widget 属于下面的
+Omarchy shell 插件。
 
 `dsh` 和 `pnpm` 已在 `PATH` 上时，也可以直接把 npm 包装进 profile：
 
@@ -99,7 +103,7 @@ profile 持有自己的副本，不会被包管理器清理打断。重新运行
 omarchy plugin add https://github.com/yorelog/dsh-omarchy-agent --enable
 ```
 
-插件的 service 会在后台运行一次 npm 安装器。
+插件的 service 会在后台运行一次 npm 安装器。顶栏 widget 和面板也由这个插件安装。
 
 目标是 `web` profile，因为 `dsh web` 启动它（Omarchy 的启动器也是运行
 `dsh web`）。加 `--headless` 可同时装入 `headless` profile，用于
@@ -207,7 +211,8 @@ systemctl --user stop dsh-web
 widget 设置。server 的凭据来自 dsh 自己的
 `~/.dsh/.credentials.yaml`；如果习惯用环境变量，也可以放在
 `~/.config/dsh/web.env`，启动命令会 source 它。npm bundle 不安装这个 widget；
-它只随 Omarchy 插件提供。
+它只随 Omarchy 插件提供。如果已安装但不在顶栏，用
+`omarchy plugin enable dsh-omarchy-agent right` 或顶栏设置把它放上去。
 
 ## 使用这些工具
 
@@ -231,6 +236,9 @@ widget 设置。server 的凭据来自 dsh 自己的
   然后重启 profile（`dsh plugin` 的变更在下次启动时生效）。
 - **3080 端口被占用** — 已经有一个 `dsh web` 在运行，打开它的 URL，不要再启动
   一个。
+- **顶栏没有图标** — widget 随 Omarchy shell 插件提供，不在 npm bundle 里。用
+  `omarchy plugin add ... --enable` 安装/更新，再用
+  `omarchy plugin enable dsh-omarchy-agent right` 放到顶栏。
 - **`omarchy agent` 没有打开 dsh** — 不含 [#14455][pr14455] / [#14040][pr14040]
   的已发布 Omarchy 还不认识 dsh，请用 `dsh web`；支持之后用
   `omarchy default agent dsh` 选中它。
