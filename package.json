@@ -1,6 +1,6 @@
 {
   "name": "dsh-omarchy-agent",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Omarchy capabilities for DeepSeek Harness: live desktop tools, a package-ownership guard, web cards, and a top-bar panel.",
   "type": "module",
   "license": "MIT",
