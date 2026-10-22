@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dsh-omarchy-agent",
   "name": "DeepSeek Harness",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "yorelog",
   "license": "MIT",
   "description": "Adds Omarchy capabilities to DeepSeek Harness and puts dsh web, the dsh CLI, and local Omarchy state in one bar panel.",

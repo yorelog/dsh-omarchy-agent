@@ -1,8 +1,8 @@
-<p align="center"><img src="icon.svg" width="96" height="96" alt="dsh-omarchy-agent 图标"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/yorelog/dsh-omarchy-agent/main/icon.svg" width="96" height="96" alt="dsh-omarchy-agent 图标"></p>
 
 # dsh-omarchy-agent
 
-[English](README.md) | 中文
+[English](https://github.com/yorelog/dsh-omarchy-agent/blob/main/README.md) | 中文
 
 **让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 真正会用你的 Omarchy 桌面。**
 
