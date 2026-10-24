@@ -22,18 +22,20 @@ Your coding agent can write code all day, but it can't see the desktop around it
 
 ## Install
 
-`dsh` must already be on your `PATH`. Omarchy owns installing and selecting it; on a released Omarchy that does not list dsh yet, install it yourself:
-
-```sh
-mise use -g npm:@deepseek-ai/dsh@latest
-```
-
-Then add the plugin to the `web` profile:
+Install the plugin package, then run its installer:
 
 ```sh
 mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
 ```
+
+The installer adds the bundle to the `web` profile. If `dsh` is not on your `PATH`, it looks up the newest published dsh version — including the current `rc` releases, which have no stable `latest` — and asks before installing it:
+
+```text
+dsh is not installed. Install the newest published version (0.2.1-rc.3) with mise? [Y/n]
+```
+
+Answer yes, or pass `--yes` for a non-interactive install. Use `--no-install-dsh` if you want the installer to fail instead, and `--dsh-version <version>` to pin a version. Omarchy still owns selecting dsh as the default agent.
 
 Want the bar panel too? Install it as an Omarchy plugin:
 
@@ -107,7 +109,8 @@ The plugin adapts to what the machine has instead of assuming a version.
 
 ## Troubleshooting
 
-- **`dsh` not found** — install it with `mise use -g npm:@deepseek-ai/dsh@latest`, then open a new shell.
+- **`dsh` not found** — re-run `dsh-omarchy-agent-install`; it looks up the newest published pre-release and offers to install it. To install manually, pass the version it prints to `mise use -g npm:@deepseek-ai/dsh@<version>`, then open a new shell.
+- **Start dsh web does nothing** — run `dsh-omarchy-agent-install` first so `dsh` is on `PATH`, then check `systemctl --user status dsh-web` and `journalctl --user -t omarchy-shell -n 50`. The panel starts dsh web as a transient user unit.
 - **Tools missing** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`, then restart `dsh web`.
 - **Old panel after an update** — the bar keeps its instantiated widget; run `omarchy restart shell` after `omarchy plugin update` if the panel still shows the old layout.
 - **Start dsh web failed with `EADDRINUSE`** — older builds used `curl -f`, which read the 401 from a running dsh web as “not running”. Update to the latest release; it treats any HTTP response as an occupied port.

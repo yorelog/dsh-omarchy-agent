@@ -22,18 +22,20 @@ coding agent 很会写代码，却看不见桌面。这个插件把实时桌面�
 
 ## 安装
 
-`dsh` 必须已经在 `PATH` 上。安装和选择由 Omarchy 负责；如果当前 Omarchy 还不认识 dsh，先自己安装：
-
-```sh
-mise use -g npm:@deepseek-ai/dsh@latest
-```
-
-然后把插件装进 `web` profile：
+先安装插件包，再运行它的安装脚本：
 
 ```sh
 mise use -g npm:dsh-omarchy-agent
 dsh-omarchy-agent-install
 ```
+
+安装脚本会把 bundle 加进 `web` profile。如果 `dsh` 不在 `PATH` 上，它会查询 npm 上最新的已发布版本（包括当前的 `rc` 版本；dsh 目前还没有稳定的 `latest`），并在安装前询问：
+
+```text
+dsh is not installed. Install the newest published version (0.2.1-rc.3) with mise? [Y/n]
+```
+
+回答 `y`，或用 `--yes` 非交互安装。若希望 dsh 缺失时直接失败，加 `--no-install-dsh`；用 `--dsh-version <version>` 可以固定版本。选择 dsh 为默认 agent 仍由 Omarchy 负责。
 
 还想要顶栏面板？把它作为 Omarchy 插件安装：
 
@@ -107,7 +109,8 @@ BarIconButton 的文档在哪？
 
 ## 故障排查
 
-- **找不到 `dsh`** — 运行 `mise use -g npm:@deepseek-ai/dsh@latest`，然后开新 shell。
+- **找不到 `dsh`** — 重新运行 `dsh-omarchy-agent-install`；它会查询最新的已发布预发布版本并询问是否安装。手动安装时，把它显示的版本传给 `mise use -g npm:@deepseek-ai/dsh@<version>`，然后开新 shell。
+- **点 Start dsh web 没反应** — 先运行 `dsh-omarchy-agent-install` 让 `dsh` 进入 `PATH`，再检查 `systemctl --user status dsh-web` 和 `journalctl --user -t omarchy-shell -n 50`。面板用 transient user unit 启动 dsh web。
 - **没有工具** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`，然后重启 `dsh web`。
 - **升级后面板还是旧的** — bar 会保留已经实例化的 widget；`omarchy plugin update` 后运行 `omarchy restart shell`。
 - **Start dsh web 报 `EADDRINUSE`** — 旧版本用 `curl -f` 探测，把已运行 dsh web 的 401 当成“未运行”。升级到最新版本；新版本把任何 HTTP 响应都视为端口已占用。
