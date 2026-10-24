@@ -42,6 +42,7 @@ Panel {
   readonly property bool externalServer: portOpen && !unitActive
 
   property int failedUnits: 0
+  property string failedUnitName: ""
   property string defaultAgent: ""
   property string dshVersion: ""
   property int sessionCount: 0
@@ -220,7 +221,8 @@ Panel {
   }
 
   function projectValue() {
-    return projectName !== "" ? projectName : "—"
+    if (gitBranch !== "") return projectName !== "" ? projectName : shortWorkDir()
+    return shortWorkDir()
   }
 
   function projectDetail() {
@@ -236,6 +238,7 @@ Panel {
 
   function prettyApp(name) {
     if (name.indexOf("chrome-127.0.0.1") === 0) return ""
+    if (name === "org.omarchy.agent" || name === "com.yorelog.dsh-omarchy-agent") return "dsh terminal"
     if (name === "com.microsoft.VSCode" || name === "code" || name === "code-oss") return "VSCode"
     if (name === "chromium") return "Chromium"
     if (name === "google-chrome" || name === "chrome") return "Chrome"
@@ -244,6 +247,10 @@ Panel {
 
   function errorsDetail() {
     return lastErrorLine !== "" ? lastErrorLine : "no errors in the last hour"
+  }
+
+  function failedUnitsDetail() {
+    return failedUnitName !== "" ? failedUnitName : ""
   }
 
   function cardPrompt(id) {
@@ -456,7 +463,7 @@ Panel {
           iconComponent: heroIcon
           title: "DeepSeek Harness"
           meta: root.serverRunning ? "Web UI running" : "Web UI stopped"
-          detail: "profile web"
+          detail: "web profile · 127.0.0.1:" + root.port
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
@@ -677,6 +684,7 @@ Panel {
             actionId: "failed-units"
             onActivated: root.activateCard("failed-units")
             value: String(root.failedUnits)
+            detail: root.failedUnitsDetail()
           }
         }
 
@@ -859,12 +867,14 @@ Panel {
 
   Process {
     id: unitsProc
-    command: ["bash", "-c", "systemctl --user --failed --no-legend 2>/dev/null | wc -l"]
+    command: ["bash", "-c", "systemctl --user --failed --no-legend --no-pager 2>/dev/null | awk 'NR==1{first=($1 ~ /\\./ ? $1 : $2)} {n++} END{printf \"%d|%s\\n\", n, first}'"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
-        var count = parseInt(String(text).trim(), 10)
+        var parts = String(text).trim().split("|")
+        var count = parseInt(parts[0], 10)
         root.failedUnits = isNaN(count) ? 0 : count
+        root.failedUnitName = (parts[1] || "").trim()
       }
     }
   }
@@ -1015,7 +1025,10 @@ Panel {
     id: projectProc
     command: [
       "bash", "-c",
-      "printf '%s|%s|%s\\n' \"$(basename \"$1\")\" \"$(git -C \"$1\" rev-parse --abbrev-ref HEAD 2>/dev/null)\" \"$(git -C \"$1\" status --porcelain 2>/dev/null | wc -l)\"",
+      "d=\"$1\"; top=\"$d\"; " +
+      "if git -C \"$d\" rev-parse --show-toplevel >/dev/null 2>&1; then top=\"$(git -C \"$d\" rev-parse --show-toplevel)\"; " +
+      "else found=\"$(find \"$d\" -mindepth 2 -maxdepth 4 -name .git -printf '%T@ %h\\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)\"; [ -n \"$found\" ] && top=\"$found\"; fi; " +
+      "printf '%s|%s|%s\\n' \"$(basename \"$top\")\" \"$(git -C \"$top\" rev-parse --abbrev-ref HEAD 2>/dev/null)\" \"$(git -C \"$top\" status --porcelain 2>/dev/null | wc -l)\"",
       "_", root.workDir
     ]
     stdout: StdioCollector {
