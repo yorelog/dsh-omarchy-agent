@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/yorelog/dsh-omarchy-agent/main/docs/banner.png" width="100%" alt="The Dsh Omarchy Agent Banner"></p>
+
 <p align="center"><img src="https://raw.githubusercontent.com/yorelog/dsh-omarchy-agent/main/icon.svg" width="96" height="96" alt="dsh-omarchy-agent icon"></p>
 
 # dsh-omarchy-agent
@@ -12,8 +14,6 @@ English | [中文](https://github.com/yorelog/dsh-omarchy-agent/blob/main/README
 **Teach [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) to use your Omarchy desktop.**
 
 Your coding agent can write code all day, but it can't see the desktop around it. This plugin gives `dsh` the live desktop, the right Omarchy commands, the docs and source behind them, and one bar panel for the harness itself.
-
-<p align="center"><img src="https://raw.githubusercontent.com/yorelog/dsh-omarchy-agent/main/docs/banner.png" width="100%" alt="The Dsh Omarchy Agent Banner"></p>
 
 ## What you get
 
