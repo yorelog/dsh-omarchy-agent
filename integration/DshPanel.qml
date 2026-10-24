@@ -96,12 +96,9 @@ Panel {
       lastError = "dsh web is already running outside the panel on port " + port
       return
     }
-    if (portOpen) {
-      if (!pendingOpen) lastError = "dsh web is already running on port " + port
-      return
-    }
-    // A fresh port probe decides whether the server is really absent. Without
-    // it, a click before the first refresh can start a second dsh web on 3080.
+    // A fresh port probe decides whether the server is really absent. The
+    // cached `portOpen` is not trusted here: the server may have stopped since
+    // the last refresh, or `port` may have changed under it.
     lastError = ""
     pendingTicks = 0
     pendingStart = true
@@ -854,7 +851,9 @@ Panel {
         if (!root.pendingOpen) root.lastError = "dsh web is already running on port " + root.port
         return
       }
-      if (!root.unitActive) root.startProc.running = true
+      // `startProc` is an id in this component, not a property of `root`, so
+      // qualify-free lookup is the one that resolves.
+      if (!root.unitActive) startProc.running = true
     }
   }
 
@@ -1033,12 +1032,21 @@ Panel {
 
   Process {
     id: startProc
+    // Run as a transient user unit so a shell restart does not take the server
+    // down. The command is passed as argv, not spliced into a shell string, so
+    // a work directory with spaces survives. dsh web is told the panel's port
+    // explicitly; without it a non-default `port` setting would start on 3080
+    // while the panel probes the configured port.
     command: [
       "systemd-run", "--user", "--collect", "--unit=dsh-web",
-      "--working-directory=" + root.workDir,
       "--setenv=DSH_PERMISSION_MODE=" + root.permissionMode,
       "--", "bash", "-c",
-      "d=$(command -v dsh || echo \"$HOME/.local/share/mise/shims/dsh\"); [ -r \"$HOME/.config/dsh/web.env\" ] && . \"$HOME/.config/dsh/web.env\"; exec \"$d\" web --no-open"
+      "PATH=\"$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH\"; export PATH; " +
+      "cd \"$1\" 2>/dev/null || cd \"$HOME\" || exit 1; " +
+      "d=$(command -v dsh) || { echo 'dsh not found on PATH; run dsh-omarchy-agent-install' >&2; exit 127; }; " +
+      "[ -r \"$HOME/.config/dsh/web.env\" ] && . \"$HOME/.config/dsh/web.env\"; " +
+      "exec \"$d\" web --no-open --host 127.0.0.1 --port \"$2\"",
+      "_", root.workDir, String(root.port)
     ]
     onExited: function(exitCode) {
       if (exitCode === 0) {
