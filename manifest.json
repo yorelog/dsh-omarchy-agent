@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dsh-omarchy-agent",
   "name": "DeepSeek Harness",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "author": "yorelog",
   "license": "MIT",
   "description": "Adds Omarchy tools, a package guard, and a bar panel to DeepSeek Harness.",
