@@ -13,7 +13,7 @@
 
 coding agent 很会写代码，却看不见桌面。这个插件把实时桌面、真实的 Omarchy 命令、它们背后的文档与源码，以及一个顶栏面板交给 `dsh`。
 
-<p align="center"><img src="https://raw.githubusercontent.com/yorelog/dsh-omarchy-agent/main/docs/topbar.png" width="560" alt="Omarchy 顶栏里的 DeepSeek Harness 面板"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/yorelog/dsh-omarchy-agent/main/docs/banner.png" width="100%" alt="The Dsh Omarchy Agent Banner"></p>
 
 ## 你会得到
 
