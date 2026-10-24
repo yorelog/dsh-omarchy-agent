@@ -97,45 +97,6 @@ To change the plugin config, edit `~/.dsh/profiles/web/cordis.patch.yml`:
 
 `privilegedTokens` is empty by default because Omarchy launches agents with full access.
 
-## Safety
-
-- The inspection tools are read-only. `omarchy_theme set` and `omarchy_hypr reload` are the only desktop changes.
-- `/usr/share/omarchy` is package-owned and never modified by dsh; user changes stay in `~/.config`.
-- The bar plugin does not install the dsh bundle or start network installs when it loads.
-- `dsh web` listens on `127.0.0.1` only. Do not expose it to the internet.
-- DeepSeek uploads session logs by default when you use its official model API; turn that off under _Settings → General → Upload Session Log_. Feedback telemetry is separate: `DSH_TELEMETRY_MODE=DISABLED` disables the OTel export, while `DSH_TELEMETRY_DISABLED` opts the process out entirely.
-
-## Compatibility
-
-- **Omarchy 4.0.4 and earlier** — dsh is not in `omarchy default agent` yet and there is no DeepSeek usage collector. Install dsh manually; the panel shows “Waiting for collector” for usage.
-- **quattro / native dsh support** — dsh is a default agent with an Omarchy usage collector. The same read-only tools report it, and DeepSeek usage appears in the panel automatically.
-
-The plugin adapts to what the machine has instead of assuming a version.
-
-## Troubleshooting
-
-- **`dsh` not found** — re-run `dsh-omarchy-agent-install`; it looks up the newest published pre-release and offers to install it. To install manually, pass the version it prints to `mise use -g npm:@deepseek-ai/dsh@<version>`, then open a new shell.
-- **Start dsh web does nothing** — run `dsh-omarchy-agent-install` first so `dsh` is on `PATH`, then check `systemctl --user status dsh-web` and `journalctl --user -t omarchy-shell -n 50`. The panel starts dsh web as a transient user unit.
-- **Tools missing** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`, then restart `dsh web`.
-- **Old panel after an update** — the bar keeps its instantiated widget; run `omarchy restart shell` after `omarchy plugin update` if the panel still shows the old layout.
-- **Start dsh web failed with `EADDRINUSE`** — older builds used `curl -f`, which read the 401 from a running dsh web as “not running”. Update to the latest release; it treats any HTTP response as an occupied port.
-- **Read denied under `/usr/share/omarchy`** — use the `read` tool or `omarchy_source`; shell commands that also invoke `sed`, `awk`, `python`, `node`, or `perl` are treated as writes even when they only read.
-- **Bar icon missing** — install the Omarchy plugin, then run `omarchy plugin enable dsh-omarchy-agent right`.
-- **Usage is empty** — released Omarchy has no DeepSeek collector. The Omarchy agents panel fills it in once native support lands.
-- **`omarchy agent` does not open dsh** — released Omarchy does not list dsh yet; use `dsh web` or the bar panel.
-
-## Development
-
-The agent plugin lives in `src/`; the web cards live in `src/client/`. `lib/` is committed, and CI checks it matches the source.
-
-```sh
-mise run install   # npm install
-mise run build     # build the host plugin and the web client
-mise run test      # smoke tests
-```
-
-Releases run in GitHub Actions; see [RELEASING.md](https://github.com/yorelog/dsh-omarchy-agent/blob/main/RELEASING.md).
-
 ## License
 
 MIT

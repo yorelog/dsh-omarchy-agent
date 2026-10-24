@@ -97,45 +97,6 @@ BarIconButton 的文档在哪？
 
 `privilegedTokens` 默认为空，因为 Omarchy 以 full access 启动 agent。
 
-## 安全
-
-- 检查类工具只读。`omarchy_theme set` 和 `omarchy_hypr reload` 是仅有的桌面变更。
-- `/usr/share/omarchy` 属于系统包，dsh 不会修改它；你的改动留在 `~/.config`。
-- bar 插件加载时不会安装 dsh bundle，也不会在后台跑网络安装。
-- `dsh web` 只监听 `127.0.0.1`。不要把它暴露到公网。
-- DeepSeek 在使用官方模型 API 时默认上传 session log；在 Web UI 的 _Settings → General → Upload Session Log_ 里关闭。反馈遥测是另一条通道：`DSH_TELEMETRY_MODE=DISABLED` 关闭 OTel 导出，`DSH_TELEMETRY_DISABLED` 让整个进程退出遥测。
-
-## 兼容性
-
-- **Omarchy 4.0.4 及更早** — `omarchy default agent` 里还没有 dsh，也没有 DeepSeek 用量采集器。手动安装 dsh；面板的用量区会显示“Waiting for collector”。
-- **quattro / 原生 dsh 支持** — dsh 是 default agent，并有 Omarchy 用量采集器。同一套只读工具会报告这些能力，DeepSeek 用量会自动出现在面板里。
-
-插件按机器实际具备的能力工作，而不是假设某个版本。
-
-## 故障排查
-
-- **找不到 `dsh`** — 重新运行 `dsh-omarchy-agent-install`；它会查询最新的已发布预发布版本并询问是否安装。手动安装时，把它显示的版本传给 `mise use -g npm:@deepseek-ai/dsh@<version>`，然后开新 shell。
-- **点 Start dsh web 没反应** — 先运行 `dsh-omarchy-agent-install` 让 `dsh` 进入 `PATH`，再检查 `systemctl --user status dsh-web` 和 `journalctl --user -t omarchy-shell -n 50`。面板用 transient user unit 启动 dsh web。
-- **没有工具** — `dsh --profile web --dump-config | grep dsh-omarchy-agent`，然后重启 `dsh web`。
-- **升级后面板还是旧的** — bar 会保留已经实例化的 widget；`omarchy plugin update` 后运行 `omarchy restart shell`。
-- **Start dsh web 报 `EADDRINUSE`** — 旧版本用 `curl -f` 探测，把已运行 dsh web 的 401 当成“未运行”。升级到最新版本；新版本把任何 HTTP 响应都视为端口已占用。
-- **读取 `/usr/share/omarchy` 被拒绝** — 用 `read` 工具或 `omarchy_source`；包含 `sed`、`awk`、`python`、`node`、`perl` 的 shell 命令即使只读也会被当作写入。
-- **顶栏没有图标** — 安装 Omarchy 插件，然后运行 `omarchy plugin enable dsh-omarchy-agent right`。
-- **用量为空** — 已发布的 Omarchy 没有 DeepSeek 采集器；等原生支持落地后由 Omarchy agents 面板填入。
-- **`omarchy agent` 打不开 dsh** — 已发布的 Omarchy 还不认识 dsh；用 `dsh web` 或顶栏面板。
-
-## 开发
-
-agent 插件在 `src/`；web 卡片在 `src/client/`。`lib/` 已提交，CI 会校验它与源码一致。
-
-```sh
-mise run install   # npm install
-mise run build     # 构建 host 插件和 web client
-mise run test      # smoke tests
-```
-
-发布在 GitHub Actions 里完成；见 [RELEASING.md](https://github.com/yorelog/dsh-omarchy-agent/blob/main/RELEASING.md)。
-
 ## 许可证
 
 MIT
