@@ -72,6 +72,8 @@ assert.match(promptText, /omarchy_panel/, 'prompt should route panel signals thr
 assert.match(promptText, /read tool/, 'prompt should keep the read tool as the escape hatch')
 assert.match(promptText, /omarchy-restart-shell/, 'prompt should include the shell restart step')
 assert.match(promptText, /omarchy capture screenshot/, 'prompt should include visual verification')
+assert.match(promptText, /hyprctl configerrors/, 'prompt should require configerrors validation after Hyprland edits')
+assert.match(promptText, /hl\.unbind/, 'prompt should require unbind before re-binding a key')
 
 // The package-owned tree is never a write target, in every mode.
 assert.equal((await decide({ name: 'write', arguments: { path: '/usr/share/omarchy/x' } })).kind, 'deny')

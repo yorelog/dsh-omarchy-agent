@@ -248,6 +248,8 @@ function registerHypr(ctx: Context, config: Config): void {
             target: { type: 'string' },
             data: { type: 'json' },
             reloaded: { type: 'boolean' },
+            configClean: { type: 'boolean' },
+            configErrors: { type: 'string' },
             output: { type: 'string' },
             error: { type: 'string' },
           },
@@ -258,9 +260,16 @@ function registerHypr(ctx: Context, config: Config): void {
         const o = opts(config, exec)
         if (args.action === 'reload') {
           const outcome = await run('hyprctl', ['reload'], o)
-          return outcome.ok
-            ? { action: 'reload', reloaded: true, output: outcome.stdout }
-            : { action: 'reload', reloaded: false, error: outcome.stderr }
+          if (!outcome.ok) return { action: 'reload', reloaded: false, error: outcome.stderr }
+          const check = await run('hyprctl', ['configerrors'], o)
+          const configErrors = check.ok ? check.stdout : check.stderr
+          return {
+            action: 'reload',
+            reloaded: true,
+            output: outcome.stdout,
+            configClean: check.ok && configErrors.trim() === '',
+            configErrors,
+          }
         }
         const target = args.target ?? 'monitors'
         const outcome = await run('hyprctl', [target, '-j'], o)
@@ -277,9 +286,9 @@ function registerDiagnose(ctx: Context, config: Config): void {
     defineTool({
       name: 'omarchy_diagnose',
       description:
-        'Gather Omarchy diagnostics: recent crashes from coredumpctl and failed system and user units. Read-only; use it when asked why an application, the bar, or a session misbehaved.',
+        'Gather Omarchy diagnostics: recent crashes from coredumpctl, failed system and user units, and the full omarchy-debug support log. Read-only; use it when asked why an application, the bar, or a session misbehaved, or to prepare a bug report.',
       parameters: {
-        scope: { type: 'string', enum: ['crashes', 'units', 'all'], description: 'Which diagnostics to collect. Defaults to all.' },
+        scope: { type: 'string', enum: ['crashes', 'units', 'debug', 'all'], description: 'Which diagnostics to collect. Defaults to all.' },
         limit: { type: 'integer', description: 'Maximum crash records to return. Defaults to 10.' },
       },
       output: {
@@ -291,6 +300,8 @@ function registerDiagnose(ctx: Context, config: Config): void {
             crashes: { type: 'array', items: { type: 'string' } },
             systemUnits: { type: 'array', items: { type: 'string' } },
             userUnits: { type: 'array', items: { type: 'string' } },
+            debug: { type: 'string' },
+            debugLogPath: { type: 'string' },
             errors: { type: 'array', items: { type: 'string' } },
           },
         },
@@ -304,6 +315,8 @@ function registerDiagnose(ctx: Context, config: Config): void {
         const crashes: string[] = []
         const systemUnits: string[] = []
         const userUnits: string[] = []
+        let debug = ''
+        let debugLogPath = ''
         if (scope === 'crashes' || scope === 'all') {
           const outcome = await run('coredumpctl', ['list', '--no-pager', '-n', String(limit)], o)
           if (outcome.ok) crashes.push(...lines(outcome.stdout))
@@ -317,7 +330,16 @@ function registerDiagnose(ctx: Context, config: Config): void {
           if (userOutcome.ok) userUnits.push(...lines(userOutcome.stdout))
           else errors.push(`systemctl --user --failed: ${userOutcome.stderr}`)
         }
-        return { scope, crashes, systemUnits, userUnits, errors }
+        if (scope === 'debug' || scope === 'all') {
+          const outcome = await run('omarchy-debug', ['--no-sudo', '--print'], o)
+          if (outcome.ok) {
+            debug = outcome.stdout
+            debugLogPath = '/tmp/omarchy-debug.log'
+          } else {
+            errors.push(`omarchy-debug: ${outcome.stderr}`)
+          }
+        }
+        return { scope, crashes, systemUnits, userUnits, debug, debugLogPath, errors }
       },
     }),
   )
