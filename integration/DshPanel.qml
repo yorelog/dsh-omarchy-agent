@@ -1081,7 +1081,7 @@ Panel {
   Process {
     id: terminalProc
     command: [
-      "omarchy-launch-tui", "--app-id=org.omarchy.agent",
+      "omarchy-launch-tui", "--app-id=com.yorelog.dsh-omarchy-agent",
       "bash", "-lc", "dsh --help 2>/dev/null || true; exec bash"
     ]
   }
