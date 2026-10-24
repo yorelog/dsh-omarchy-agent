@@ -42,7 +42,7 @@ Panel {
   readonly property bool externalServer: portOpen && !unitActive
 
   property int failedUnits: 0
-  property string failedUnitName: ""
+  property string failedUnitNames: ""
   property string defaultAgent: ""
   property string dshVersion: ""
   property int sessionCount: 0
@@ -250,63 +250,69 @@ Panel {
   }
 
   function failedUnitsDetail() {
-    return failedUnitName !== "" ? failedUnitName : ""
+    return failedUnitNames !== "" ? failedUnitNames : ""
   }
 
   function cardPrompt(id) {
     var lines = ["From the DeepSeek Harness bar panel:"]
     switch (id) {
     case "web":
-      lines.push("The dsh web server is " + serverLabel() + " on 127.0.0.1:" + port + ".")
-      lines.push("Explain what this means and what I should check before using it.")
+      lines.push("The dsh web server is " + serverLabel() + " at 127.0.0.1:" + port + (externalServer ? " (running outside the panel)" : "") + ".")
+      lines.push("Tell me how to use it, and if it is stopped, how to start it and what to check first.")
       break
     case "cli":
-      lines.push("The dsh CLI is " + cliLabel() + "; the default agent is " + (defaultAgent !== "" ? defaultAgent : "not selected") + ".")
-      lines.push("Help me verify the CLI and pick the right way to start a session.")
+      lines.push("The dsh CLI is " + cliLabel() + " and the default agent is " + (defaultAgent !== "" ? defaultAgent : "not selected") + ".")
+      lines.push("Verify the CLI is ready and tell me the right way to start a session.")
       break
     case "agent":
-      lines.push("My Omarchy default agent is " + (defaultAgent !== "" ? defaultAgent : "not selected") + "; dsh is " + cliLabel() + ".")
-      lines.push("Help me decide whether dsh should be the default and what I need to run.")
+      lines.push("My Omarchy default agent is " + (defaultAgent !== "" ? defaultAgent : "not selected") + " and dsh is " + cliLabel() + ".")
+      lines.push("Tell me whether dsh should be the default and what command selects it.")
       break
     case "permission":
-      lines.push("dsh is running with permission mode " + permissionMode + ".")
-      lines.push("Explain the risk of this mode and when I should use workspace-write instead.")
+      lines.push("dsh runs with permission mode " + permissionMode + " (" + permissionLabel() + ").")
+      lines.push("Explain the risk of this mode and when I should switch to workspace-write.")
       break
     case "workdir":
       lines.push("My dsh working directory is " + workDir + ".")
-      lines.push("Check what project is there and suggest the next useful step.")
+      lines.push("Look at what is there and suggest the next useful step.")
       break
     case "sessions":
       lines.push("I have " + sessionCount + " dsh sessions on this machine.")
-      lines.push("Help me find the most relevant one and summarize what I was working on.")
+      lines.push("List them, pick the most recent, and summarize what I was working on.")
       break
     case "usage":
-      lines.push("DeepSeek usage from Omarchy: balance " + balanceLabel() + ", today " + todayLabel() + ", plan " + planLabel() + ", status " + usageStatus() + ".")
-      lines.push("Explain what this means and how I can keep usage under control.")
+      if (deepseek === null) {
+        lines.push("There is no DeepSeek usage record yet (the Omarchy collector is not reporting).")
+        lines.push("Explain what that means and when usage will start appearing.")
+      } else {
+        lines.push("DeepSeek usage: balance " + balanceLabel() + ", today " + todayLabel() + ", plan " + planLabel() + ", status " + usageStatus() + ".")
+        lines.push("Explain what this means and how I can keep usage under control.")
+      }
       break
     case "load":
       lines.push("System load is " + loadLabel() + " on " + cpuLabel() + ".")
-      lines.push("Check what is consuming CPU and suggest what I should do.")
+      lines.push("Check what is consuming CPU right now and tell me whether I should act.")
       break
     case "memory":
       lines.push("Memory is " + memoryPercent() + " (" + memoryLabel() + ").")
-      lines.push("Check what is consuming memory and whether I should act.")
+      lines.push("Check what is consuming memory right now and whether I should act.")
       break
     case "errors":
       lines.push("There were " + recentErrors + " user journal errors in the last hour; the last was: " + (lastErrorLine !== "" ? lastErrorLine : "none") + ".")
-      lines.push("There are " + failedUnits + " failed user units. Diagnose the cause and give me the next command.")
+      if (failedUnitNames !== "") lines.push("Failed user units: " + failedUnitNames + ".")
+      lines.push("Diagnose the cause and give me the next command to run.")
       break
     case "failed-units":
-      lines.push("There are " + failedUnits + " failed user units.")
-      lines.push("Run a diagnosis and explain what failed and what I should do next.")
+      lines.push("There are " + failedUnits + " failed user units" + (failedUnitNames !== "" ? ": " + failedUnitNames : "") + ".")
+      lines.push("Use omarchy_diagnose and systemctl --user status <unit> to find out what failed, then tell me exactly how to fix it.")
       break
     case "recent-apps":
-      lines.push("I have recently used: " + (recentApps !== "" ? recentApps : "no tracked apps") + ".")
+      lines.push("I recently used: " + (recentApps !== "" ? recentApps : "no tracked apps") + ".")
       lines.push("Help me pick up where I left off or check the state of these apps.")
       break
     case "project":
       lines.push("My project is " + projectValue() + " in " + shortWorkDir() + " (" + projectDetail() + ").")
-      lines.push("Check the project state and suggest the next useful step.")
+      lines.push("Check the git state and suggest the next useful step.")
       break
     default:
       return ""
@@ -367,6 +373,7 @@ Panel {
         errors: recentErrors,
         lastError: lastErrorLine,
         failedUnits: failedUnits,
+        failedUnitNames: failedUnitNames,
         recentApps: recentApps,
         project: projectName,
         branch: gitBranch,
@@ -867,14 +874,14 @@ Panel {
 
   Process {
     id: unitsProc
-    command: ["bash", "-c", "systemctl --user --failed --no-legend --no-pager 2>/dev/null | awk 'NR==1{first=($1 ~ /\\./ ? $1 : $2)} {n++} END{printf \"%d|%s\\n\", n, first}'"]
+    command: ["bash", "-c", "systemctl --user --failed --no-legend --no-pager 2>/dev/null | awk '{u=($1 ~ /\\./ ? $1 : $2); if (n>0) names=names \",\" u; else names=u; n++} END{printf \"%d|%s\\n\", n, names}'"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
         var parts = String(text).trim().split("|")
         var count = parseInt(parts[0], 10)
         root.failedUnits = isNaN(count) ? 0 : count
-        root.failedUnitName = (parts[1] || "").trim()
+        root.failedUnitNames = (parts[1] || "").trim()
       }
     }
   }
