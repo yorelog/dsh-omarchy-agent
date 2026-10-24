@@ -2,6 +2,11 @@
 
 # dsh-omarchy-agent
 
+[![Build](https://github.com/yorelog/dsh-omarchy-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/yorelog/dsh-omarchy-agent/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/dsh-omarchy-agent)](https://www.npmjs.com/package/dsh-omarchy-agent)
+[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/yorelog/dsh-omarchy-agent)
+
+
 English | [中文](https://github.com/yorelog/dsh-omarchy-agent/blob/main/README.zh.md)
 
 **Teach [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) to use your Omarchy desktop.**
